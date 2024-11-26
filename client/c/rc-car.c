@@ -28,7 +28,7 @@ char* prepareActionPayload(cJSON *data) {
     return jsonString;
 }
 
-void turnCar(const RcCar *self, const float *degrees) {
+void turnCar(RcCar *self, const float *degrees) {
     int len = snprintf(NULL, 0, "%f", degrees);
     char *axisXDegreesAsString = malloc(len + 1);
     snprintf(axisXDegreesAsString, len + 1, "%f", degrees);
