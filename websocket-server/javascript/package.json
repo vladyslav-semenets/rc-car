@@ -1,0 +1,7 @@
+{
+  "name": "websocket-server-javascript",
+  "version": "0.0.1",
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

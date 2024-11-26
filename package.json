@@ -1,0 +1,12 @@
+{
+  "name": "rc-car-repo",
+  "version": "0.0.1",
+  "scripts": {
+    "start:client-javascript": "cd client/javascript && yarn run start",
+    "start:websocket-servert-pi-client-javascript": "pm2 start ecosystem-javascript.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vladyslav-semenets/rc-car.git"
+  }
+}
