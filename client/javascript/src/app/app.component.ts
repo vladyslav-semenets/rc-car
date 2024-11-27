@@ -203,7 +203,7 @@ export class AppComponent implements OnInit {
 				)),
 			distinctUntilChanged(),
 		).subscribe((degrees: number) => {
-			this.sendSocketMessage('change-degree-of-turns', {
+			this.sendSocketMessage('camera-gimbal-set-pitch-angle', {
 				degrees,
 			});
 		});

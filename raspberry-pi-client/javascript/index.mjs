@@ -206,12 +206,12 @@ class SocketController {
                         this.carController.turn(options?.degreeOfTurns ?? 90);
                         break;
 
-                    case 'run-mediamtx':
+                    case 'start-camera':
                         this.mediamtxController.run();
                         break;
 
-                    case 'stop-mediamtx':
-                        this.mediamtxController.run();
+                    case 'stop-camera':
+                        this.mediamtxController.stop();
                         break;
 
                     case 'camera-gimbal-turn-to':
