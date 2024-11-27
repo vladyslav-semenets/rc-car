@@ -8,7 +8,7 @@
 
 #define MAX_PAYLOAD_SIZE 1024
 #define WEB_SOCKET_ADDRESS "127.0.0.1"
-#define WEB_SOCKET_PORT 80
+#define WEB_SOCKET_PORT 8585
 
 struct lws *webSocketInstance = NULL;
 struct lws_context *lwsContext = NULL;
