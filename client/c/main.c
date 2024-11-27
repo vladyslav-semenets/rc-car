@@ -4,7 +4,7 @@
 #include "dualshock.h"
 #include "websocket.h"
 
- int isRunning = 1;
+int isRunning = 1;
 
 void handleSignal(const int signal) {
     switch (signal) {

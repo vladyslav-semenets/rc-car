@@ -6,6 +6,8 @@ client/javascript/.angular
 raspberry-pi-client/javascript/node_modules
 client/c/.idea
 client/c/cmake-build-debug
+websocket-server/c/.idea
+websocket-server/c/cmake-build-debug
 
 # Logs
 logs

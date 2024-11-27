@@ -145,14 +145,7 @@ class SocketController {
         this.carController = carController;
         this.mediamtxController = mediamtxController;
         this.cameraGimbal = cameraGimbal;
-        this.wss = new WebSocket(
-            'ws://127.0.0.1:8585',
-            {
-                headers: {
-                    'X-Source': 'rc-car-server',
-                },
-            },
-        );
+        this.wss = new WebSocket('ws://127.0.0.1:8585/?source=rc-car-server');
         this.initSocket();
     }
 

@@ -50,14 +50,9 @@ void sendWebSocketEvent(const char *message, struct lws *webSocketInstance) {
         return;
     }
 
-    unsigned char buf[LWS_PRE + MAX_PAYLOAD_SIZE];
-    memset(buf, 0, sizeof(buf));
-    strncpy((char *)&buf[LWS_PRE], message, MAX_PAYLOAD_SIZE);
-
-    lws_callback_on_writable(webSocketInstance);
-    lws_service(lwsContext, 100);
-
-    printf("Queued message for sending: %s\n", message);
+    unsigned char *rawMessage = (unsigned char *)message;
+    const size_t len = strlen(message);
+    lws_write(webSocketInstance, rawMessage, len, LWS_WRITE_TEXT);
 }
 
 struct lws *connectToWebSocketServer(void) {
@@ -65,7 +60,7 @@ struct lws *connectToWebSocketServer(void) {
     struct lws_client_connect_info connectionInfo;
 
     memset(&contextCreationInfo, 0, sizeof(contextCreationInfo));
-    contextCreationInfo.protocols = (struct lws_protocols[]){{"example-protocol", callbackWebsocket, 0, 0}, {NULL, NULL, 0, 0}};
+    contextCreationInfo.protocols = (struct lws_protocols[]){{"websocket", callbackWebsocket, 0, 0}, {NULL, NULL, 0, 0}};
     contextCreationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
     lwsContext = lws_create_context(&contextCreationInfo);
