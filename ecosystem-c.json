@@ -1,0 +1,10 @@
+{
+  "apps" : [
+    {
+      "name": "websocket-server-c",
+      "script" : "./websocket-server/c/build/websocketserver",
+      "exec_interpreter": "none",
+      "exec_mode"  : "fork_mode"
+    }
+  ]
+}
