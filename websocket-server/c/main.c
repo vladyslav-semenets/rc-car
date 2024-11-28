@@ -1,6 +1,7 @@
 #include <libwebsockets.h>
 #include <string.h>
 #include <stdlib.h>
+#include <signal.h>;
 #include <cjson/cJSON.h>;
 #include <stdio.h>
 
