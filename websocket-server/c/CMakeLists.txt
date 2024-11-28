@@ -4,8 +4,8 @@ project(websocketserver C)
 # Set the C standard
 set(CMAKE_C_STANDARD 11)
 
-include_directories(/opt/homebrew/include /usr/include)
-link_directories(/opt/homebrew/lib /usr/lib)
+include_directories(/opt/homebrew/include /usr/include /usr/local/include)
+link_directories(/opt/homebrew/lib /usr/lib /usr/local/lib)
 
 # Add the executable
 add_executable(websocketserver main.c)
