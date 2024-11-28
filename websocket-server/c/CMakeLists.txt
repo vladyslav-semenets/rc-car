@@ -11,4 +11,4 @@ link_directories(/opt/homebrew/lib /usr/lib)
 add_executable(websocketserver main.c)
 
 # Link the libwebsockets library
-target_link_libraries(websocketserver websockets ssl crypto SDL2 cjson)
+target_link_libraries(websocketserver websockets ssl crypto cjson)
