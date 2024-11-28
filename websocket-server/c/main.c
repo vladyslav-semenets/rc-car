@@ -62,11 +62,19 @@ int extractQueryValue(const char *queryString, const char *key, char *output, si
 
 static int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason,
                               void *user, void *in, size_t len) {
+
+    char query[256] = {0};
+    char source[128] = {0};
+
     switch (reason) {
     case LWS_CALLBACK_ESTABLISHED: {
+        if (lws_hdr_copy_fragment(wsi, query, sizeof(query), WSI_TOKEN_HTTP_URI_ARGS, 0) > 0) {
+            extractQueryValue(query, "source", source, sizeof(source));
+        }
+
         if (clientCount < MAX_CLIENTS) {
             clients[clientCount].wsi = wsi;
-            snprintf(clients[clientCount].source, sizeof(clients[clientCount].source), "Client-%d", clientCount);
+            snprintf(clients[clientCount].source, sizeof(clients[clientCount].source), "%s", source);
             clientCount++;
 
             const char *msg = "{\"message\":\"Connection Established\"}";
