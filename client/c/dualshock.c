@@ -193,7 +193,7 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
         }
     } else if (e->type == SDL_CONTROLLERBUTTONDOWN) {
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
-            rcCar->degreeOfTurns = rcCar->degreeOfTurns + 0.1f;
+            rcCar->degreeOfTurns = rcCar->degreeOfTurns + 1.0f;
             if (rcCar->degreeOfTurns > 180.0f) {
                 rcCar->degreeOfTurns = 180.0f;
             }
@@ -201,7 +201,7 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
         }
 
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-            rcCar->degreeOfTurns = rcCar->degreeOfTurns - 0.1f;
+            rcCar->degreeOfTurns = rcCar->degreeOfTurns - 1.0f;
             if (rcCar->degreeOfTurns < 0) {
                 rcCar->degreeOfTurns = 0;
             }
@@ -218,13 +218,13 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
     }
 }
 
-void startJoystickLoop(const int *isRunning, struct lws *webSocketInstance) {
+void startJoystickLoop(int *isRunning, struct lws *webSocketInstance) {
     SDL_Event e;
     initializeState();
 
     RcCar *rcCar = newRcCar(webSocketInstance);
 
-    while (isRunning) {
+    while (*isRunning) {
         while (SDL_PollEvent(&e)) {
             processJoystickEvents(&e, rcCar);
 
@@ -232,6 +232,8 @@ void startJoystickLoop(const int *isRunning, struct lws *webSocketInstance) {
                 break;
             }
         }
+
+        SDL_Delay(100);
     }
 }
 

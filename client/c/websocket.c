@@ -8,6 +8,14 @@
 
 #define MAX_PAYLOAD_SIZE 1024
 #define WEB_SOCKET_PORT 8585
+#define KGRN "\033[0;32;32m"
+#define KCYN "\033[0;36m"
+#define KRED "\033[0;32;31m"
+#define KYEL "\033[1;33m"
+#define KBLU "\033[0;32;34m"
+#define KCYN_L "\033[1;36m"
+#define KBRN "\033[0;33m"
+#define RESET "\033[0m"
 
 struct lws *webSocketInstance = NULL;
 struct lws_context *lwsContext = NULL;
@@ -44,15 +52,20 @@ static int callbackWebsocket(
 }
 
 void sendWebSocketEvent(const char *message, struct lws *webSocketInstance) {
-    if (!webSocketInstance) {
-        fprintf(stderr, "WebSocket connection is not established.\n");
+    if (message == NULL || webSocketInstance == NULL) {
         return;
     }
 
-    unsigned char *rawMessage = (unsigned char *)message;
     const size_t len = strlen(message);
+    char *out = NULL;
 
-    lws_write(webSocketInstance, rawMessage, len, LWS_WRITE_TEXT);
+    out = (char *)malloc(sizeof(char)*(LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING));
+    memcpy (out + LWS_SEND_BUFFER_PRE_PADDING, message, len );
+
+    lws_write(webSocketInstance, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
+
+    printf(KBLU"[websocket_write_back] %s\n"RESET, message);
+    free(out);
 }
 
 WebSocketConnection connectToWebSocketServer(void) {
@@ -72,7 +85,7 @@ WebSocketConnection connectToWebSocketServer(void) {
 
     memset(&connectionInfo, 0, sizeof(connectionInfo));
     connectionInfo.context = lwsContext;
-    connectionInfo.address = getenv("RASPBERRY_PI_IP");
+    connectionInfo.address = "100.108.40.34";
     connectionInfo.port = WEB_SOCKET_PORT;
     connectionInfo.path = "/?source=rc-car-client";
 
