@@ -1,6 +1,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "libs/env/dotenv.h"
 #include "dualshock.h"
 #include "websocket.h"
 
@@ -20,13 +21,29 @@ void handleSignal(const int signal) {
     }
 }
 
+void *webSocketThread(void *arg) {
+    struct lws_context *context = (struct lws_context *)arg;
+
+    while (isRunning) {
+        lws_service(context, 100);
+
+        if (!isRunning) {
+            break;
+        }
+    }
+
+    return NULL;
+}
+
 int main() {
+    env_load(".env", false);
+
     if (initJoystick() != 0) {
         return -1;
     }
 
     struct sigaction sa;
-    struct lws *webSocketInstance = connectToWebSocketServer();
+    WebSocketConnection webSocketConnection = connectToWebSocketServer();
 
     sa.sa_handler = handleSignal;
     sa.sa_flags = 0;
@@ -36,7 +53,10 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    startJoystickLoop(&isRunning, webSocketInstance);
+    pthread_t wsThread;
+    pthread_create(&wsThread, NULL, webSocketThread, webSocketConnection.context);
+
+    startJoystickLoop(&isRunning, webSocketConnection.wsi);
 
     return 0;
 }

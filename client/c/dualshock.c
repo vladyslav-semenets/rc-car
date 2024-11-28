@@ -141,6 +141,83 @@ int initJoystick() {
     return 0;
 }
 
+void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
+    if (e->type == SDL_CONTROLLERAXISMOTION) {
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
+            struct AnalogValues cachedLeftAnalogStickValues = state->leftAnalogStickValues;
+            struct AnalogValues values = calculateLeftAnalogStickValues();
+            bool pressed = isAnalogStickPressed(&values);
+            bool previouslyPressed = isAnalogStickPressed(&cachedLeftAnalogStickValues);
+
+            if (!pressed && !previouslyPressed) {
+                return;
+            }
+
+            state->leftAnalogStickValues = values;
+
+            if (pressed && previouslyPressed) {
+                const float degrees = getAxisXDegrees();
+                rcCar->turn(rcCar, &degrees);
+            } else if (!pressed && previouslyPressed) {
+                rcCar->resetTurns(rcCar);
+            }
+        }
+
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) {
+            const int value = e->caxis.value;
+
+            if (value > 1000) {
+                const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+                rcCar->forward(rcCar, &speed);
+            }
+        }
+
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) {
+            const int value = e->caxis.value;
+
+            if (value > 1000) {
+                const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+                rcCar->backward(rcCar, &speed);
+            }
+        }
+
+        if (
+            e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT
+            || e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT
+        ) {
+            const int value = e->caxis.value;
+
+            if (value < 1000) {
+                rcCar->setEscToNeutralPosition(rcCar);
+            }
+        }
+    } else if (e->type == SDL_CONTROLLERBUTTONDOWN) {
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+            rcCar->degreeOfTurns = rcCar->degreeOfTurns + 0.1f;
+            if (rcCar->degreeOfTurns > 180.0f) {
+                rcCar->degreeOfTurns = 180.0f;
+            }
+            rcCar->changDegreeOfTurns(rcCar);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+            rcCar->degreeOfTurns = rcCar->degreeOfTurns - 0.1f;
+            if (rcCar->degreeOfTurns < 0) {
+                rcCar->degreeOfTurns = 0;
+            }
+            rcCar->changDegreeOfTurns(rcCar);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+            rcCar->stopCamera(rcCar);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
+            rcCar->startCamera(rcCar);
+        }
+    }
+}
+
 void startJoystickLoop(const int *isRunning, struct lws *webSocketInstance) {
     SDL_Event e;
     initializeState();
@@ -149,80 +226,7 @@ void startJoystickLoop(const int *isRunning, struct lws *webSocketInstance) {
 
     while (isRunning) {
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_CONTROLLERAXISMOTION) {
-                if (e.caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
-                    struct AnalogValues cachedLeftAnalogStickValues = state->leftAnalogStickValues;
-                    struct AnalogValues values = calculateLeftAnalogStickValues();
-                    bool pressed = isAnalogStickPressed(&values);
-                    bool previouslyPressed = isAnalogStickPressed(&cachedLeftAnalogStickValues);
-
-                    if (!pressed && !previouslyPressed) {
-                        continue;
-                    }
-
-                    state->leftAnalogStickValues = values;
-
-                    if (pressed && previouslyPressed) {
-                        const float degrees = getAxisXDegrees();
-                        rcCar->turn(rcCar, &degrees);
-                    } else if (!pressed && previouslyPressed) {
-                        rcCar->resetTurns(rcCar);
-                    }
-                }
-
-                if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) {
-                    const int value = e.caxis.value;
-
-                    if (value > 1000) {
-                        const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
-                        rcCar->forward(rcCar, &speed);
-                    }
-                }
-
-                if (e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) {
-                    const int value = e.caxis.value;
-
-                    if (value > 1000) {
-                        const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
-                        rcCar->backward(rcCar, &speed);
-                    }
-                }
-
-                if (
-                    e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT
-                    || e.caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT
-                ) {
-                    const int value = e.caxis.value;
-
-                    if (value < 1000) {
-                        rcCar->setEscToNeutralPosition(rcCar);
-                    }
-                }
-            } else if (e.type == SDL_CONTROLLERBUTTONDOWN) {
-                if (e.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
-                    rcCar->degreeOfTurns = rcCar->degreeOfTurns + 0.1f;
-                    if (rcCar->degreeOfTurns > 180.0f) {
-                        rcCar->degreeOfTurns = 180.0f;
-                    }
-                    rcCar->changDegreeOfTurns(rcCar);
-                }
-
-                if (e.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-                    rcCar->degreeOfTurns = rcCar->degreeOfTurns - 0.1f;
-                    if (rcCar->degreeOfTurns < 0) {
-                        rcCar->degreeOfTurns = 0;
-                    }
-                    rcCar->changDegreeOfTurns(rcCar);
-                }
-
-                if (e.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-                   rcCar->stopCamera(rcCar);
-                }
-
-                if (e.cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
-                    rcCar->startCamera(rcCar);
-                }
-            }
+            processJoystickEvents(&e, rcCar);
 
             if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_q) {
                 break;

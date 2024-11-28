@@ -3,7 +3,12 @@
 
 #include <libwebsockets.h>
 
-struct lws *connectToWebSocketServer();
+typedef struct {
+    struct lws_context *context;
+    struct lws *wsi;
+} WebSocketConnection;
+
+WebSocketConnection connectToWebSocketServer();
 void closeWebSocketServer();
 void sendWebSocketEvent(const char *message, struct lws *webSocketInstance);
 

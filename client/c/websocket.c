@@ -7,7 +7,6 @@
 #include "websocket.h"
 
 #define MAX_PAYLOAD_SIZE 1024
-#define WEB_SOCKET_ADDRESS "127.0.0.1"
 #define WEB_SOCKET_PORT 8585
 
 struct lws *webSocketInstance = NULL;
@@ -52,10 +51,12 @@ void sendWebSocketEvent(const char *message, struct lws *webSocketInstance) {
 
     unsigned char *rawMessage = (unsigned char *)message;
     const size_t len = strlen(message);
+
     lws_write(webSocketInstance, rawMessage, len, LWS_WRITE_TEXT);
 }
 
-struct lws *connectToWebSocketServer(void) {
+WebSocketConnection connectToWebSocketServer(void) {
+    WebSocketConnection wsConnection = {NULL, NULL};
     struct lws_context_creation_info contextCreationInfo;
     struct lws_client_connect_info connectionInfo;
 
@@ -66,24 +67,27 @@ struct lws *connectToWebSocketServer(void) {
     lwsContext = lws_create_context(&contextCreationInfo);
     if (!lwsContext) {
         fprintf(stderr, "Failed to create WebSocket context.\n");
-        return NULL;
+        return wsConnection;
     }
 
     memset(&connectionInfo, 0, sizeof(connectionInfo));
     connectionInfo.context = lwsContext;
-    connectionInfo.address = WEB_SOCKET_ADDRESS;
+    connectionInfo.address = getenv("RASPBERRY_PI_IP");
     connectionInfo.port = WEB_SOCKET_PORT;
-    connectionInfo.path = "/";
+    connectionInfo.path = "/?source=rc-car-client";
 
     struct lws *wsi = lws_client_connect_via_info(&connectionInfo);
 
     if (!wsi) {
         fprintf(stderr, "Failed to establish WebSocket connection.\n");
         lws_context_destroy(lwsContext);
-        return NULL;
+        return wsConnection;
     }
 
-    return wsi;
+    wsConnection.context = lwsContext;
+    wsConnection.wsi = wsi;
+
+    return wsConnection;
 }
 
 void closeWebSocketServer() {
