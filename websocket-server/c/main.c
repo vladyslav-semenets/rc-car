@@ -98,12 +98,11 @@ static int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason,
                 if (strcmp(clients[i].source, to->valuestring) == 0) {
                     char *newMessageJSON = cJSON_Print(message);
                     lws_write(clients[i].wsi, (unsigned char *)newMessageJSON, strlen(newMessageJSON), LWS_WRITE_TEXT);
-                    cJSON_Delete(newMessageJSON);
+                    cJSON_Delete(message);
+                    free(newMessageJSON);
                 }
             }
         }
-
-        cJSON_Delete(message);
 
         break;
     }
