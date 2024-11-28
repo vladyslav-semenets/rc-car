@@ -1,6 +1,10 @@
 {
   "apps" : [
     {
+      "name": "raspberrypi-client-javascript",
+      "script" : "./raspberry-pi-client/javascript/index.mjs"
+    },
+    {
       "name": "websocket-server-c",
       "script" : "./websocket-server/c/build/websocketserver",
       "exec_interpreter": "none",
