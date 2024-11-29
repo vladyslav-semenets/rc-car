@@ -21,7 +21,7 @@ typedef struct {
     struct AnalogValues leftAnalogStickValues;
 } State;
 
-
+RcCar *rcCar = NULL;
 State *state = NULL;
 
 void initializeState() {
@@ -36,6 +36,11 @@ void cleanupState() {
     if (state != NULL) {
         free(state);
         state = NULL;
+    }
+
+    if (rcCar != NULL) {
+        free(rcCar);
+        rcCar = NULL;
     }
 }
 
@@ -222,7 +227,7 @@ void startJoystickLoop(int *isRunning, struct lws *webSocketInstance) {
     SDL_Event e;
     initializeState();
 
-    RcCar *rcCar = newRcCar(webSocketInstance);
+    rcCar = newRcCar(webSocketInstance);
 
     while (*isRunning) {
         while (SDL_PollEvent(&e)) {

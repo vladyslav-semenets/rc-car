@@ -10,6 +10,9 @@ client/c/build
 websocket-server/c/.idea
 websocket-server/c/cmake-build-debug
 websocket-server/c/build
+raspberry-pi-client/c/.idea
+raspberry-pi-client/c/cmake-build-debug
+raspberry-pi-client/c/build
 
 # Logs
 logs

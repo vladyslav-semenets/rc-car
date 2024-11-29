@@ -47,7 +47,7 @@ void changDegreeOfTurns(RcCar *self) {
 
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "change-degree-of-turns");
-    cJSON_AddStringToObject(data, "degreeOfTurns", resetTurnsActionPayloadData.degreeOfTurns);
+    cJSON_AddStringToObject(data, "degrees", resetTurnsActionPayloadData.degreeOfTurns);
 
     const char *payload = prepareActionPayload(data);
 
@@ -65,7 +65,7 @@ void resetTurns(RcCar *self) {
 
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "reset-turns");
-    cJSON_AddStringToObject(data, "degreeOfTurns", resetTurnsActionPayloadData.degreeOfTurns);
+    cJSON_AddStringToObject(data, "degrees", resetTurnsActionPayloadData.degreeOfTurns);
 
     const char *payload = prepareActionPayload(data);
 
