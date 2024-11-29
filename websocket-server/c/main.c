@@ -107,7 +107,7 @@ static int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason,
 
                             lws_write(clients[i].wsi, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
 
-                            printf(KBLU"[websocket_write] %s\n"RESET, newMessageJSON);
+                            printf(KBLU"[websocket_write to %s] %s\n"RESET, to->valuestring, newMessageJSON);
                             free(out);
                         }
                     }
