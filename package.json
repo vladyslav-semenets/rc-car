@@ -4,6 +4,7 @@
   "scripts": {
     "build:client-c": "cd client/c && cmake -S . -B build && cmake --build build",
     "build:websocket-servert-c": "cd websocket-server/c && cmake -S . -B build && cmake --build build",
+    "build:raspberry-pi-client-c": "cd raspberry-pi-client/c && cmake -S . -B build && cmake --build build",
     "start:client-javascript": "cd client/javascript && yarn run start",
     "start:websocket-servert-pi-client-javascript": "pm2 start ecosystem-javascript.json"
   },
