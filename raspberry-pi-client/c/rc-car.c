@@ -8,7 +8,7 @@
 
 void turnTo(RcCar *self, const float *degrees) {
     const int pulseWidth = (int)floor(
-        CAR_TURNS_MAX_PWM +
+        CAR_TURNS_MIN_PWM +
         ((*degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM))
     );
     gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
