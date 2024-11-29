@@ -157,10 +157,32 @@ void stopCamera(RcCar *self) {
     sendWebSocketEvent(payload, self->webSocketInstance);
 }
 
+void init(RcCar *self) {
+    int lenSpeed = snprintf(NULL, 0, "%d", self->speed);
+    char *speedAsString = malloc(lenSpeed + 1);
+    snprintf(speedAsString, lenSpeed + 1, "%d", self->speed);
+
+    int lenDegrees = snprintf(NULL, 0, "%f", self->degreeOfTurns);
+    char *axisXDegreesAsString = malloc(lenDegrees + 1);
+    snprintf(axisXDegreesAsString, lenDegrees + 1, "%f", self->degreeOfTurns);
+
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(data, "action", "init");
+    cJSON_AddStringToObject(data, "carSpeed", speedAsString);
+    cJSON_AddStringToObject(data, "degrees", axisXDegreesAsString);
+    const char *payload = prepareActionPayload(data);
+
+    sendWebSocketEvent(payload, self->webSocketInstance);
+    free(speedAsString);
+    free(axisXDegreesAsString);
+}
+
+
 RcCar *newRcCar(struct lws *webSocketInstance) {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
     rcCar->webSocketInstance = webSocketInstance;
-    rcCar->degreeOfTurns = 87.0f;
+    rcCar->degreeOfTurns = 83.0f;
+    rcCar->speed = 50;
     rcCar->turn = turnCar;
     rcCar->forward = forward;
     rcCar->backward = backward;
@@ -169,5 +191,6 @@ RcCar *newRcCar(struct lws *webSocketInstance) {
     rcCar->startCamera = startCamera;
     rcCar->stopCamera = stopCamera;
     rcCar->resetTurns = resetTurns;
+    rcCar->init = init;
     return rcCar;
 }

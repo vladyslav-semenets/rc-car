@@ -6,7 +6,7 @@
 #include "rc-car.h";
 #include "dualshock.h"
 
-#define DEADZONE 8000
+#define DEADZONE 3000
 #define MAX_AXIS_VALUE 32768.0f
 
 static SDL_Joystick *joystick = NULL;
@@ -197,6 +197,10 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
             }
         }
     } else if (e->type == SDL_CONTROLLERBUTTONDOWN) {
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+            rcCar->init(rcCar);
+        }
+
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
             rcCar->degreeOfTurns = rcCar->degreeOfTurns + 1.0f;
             if (rcCar->degreeOfTurns > 180.0f) {

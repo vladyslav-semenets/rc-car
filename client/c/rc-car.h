@@ -3,6 +3,8 @@
 typedef struct RcCar {
     struct lws *webSocketInstance;
     float degreeOfTurns;
+    int speed;
+    void (*init)(struct RcCar *self);
     void (*turn)(struct RcCar *self, const float *degrees);
     void (*changDegreeOfTurns)(struct RcCar *self);
     void (*startCamera)(struct RcCar *self);
