@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <math.h>
 #include "rc-car.h"
@@ -13,7 +14,7 @@ void gpioServo(int gpio, int level) {
 }
 
 void turnTo(RcCar *self, const float *degrees) {
-    const int pulseWidth = (int)floorf(
+    const int pulseWidth = (int)floor(
         CAR_TURNS_MAX_PWM +
         ((*degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM))
     );
@@ -24,12 +25,12 @@ void move(RcCar *self, const int *speed, const char *direction) {
     int pulseWidth = CAR_ESC_NEUTRAL_MAX_PWM;
 
     if (strcmp(direction, "forward") == 0) {
-        pulseWidth = (int)floorf(
+        pulseWidth = (int)floor(
             CAR_ESC_NEUTRAL_PWM +
             ((float)(*speed) / 100.0f) * (CAR_ESC_NEUTRAL_MAX_PWM - CAR_ESC_NEUTRAL_PWM)
         );
     } else if (strcmp(direction, "backward") == 0) {
-        pulseWidth = (int)floorf(
+        pulseWidth = (int)floor(
             CAR_ESC_NEUTRAL_PWM +
             ((float)(*speed) / 100.0f) * (CAR_ESC_NEUTRAL_PWM - CAR_ESC_NEUTRAL_MIN_PWM)
         );
