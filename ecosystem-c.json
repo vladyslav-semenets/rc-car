@@ -1,14 +1,16 @@
 {
   "apps" : [
     {
-      "name": "raspberrypi-client-javascript",
-      "script" : "./raspberry-pi-client/javascript/index.mjs"
+      "name": "raspberrypi-client-c",
+      "script" : "./raspberry-pi-client/c/build/raspberrypiclient",
+      "exec_interpreter": "none",
+      "exec_mode": "fork_mode"
     },
     {
       "name": "websocket-server-c",
       "script" : "./websocket-server/c/build/websocketserver",
       "exec_interpreter": "none",
-      "exec_mode"  : "fork_mode"
+      "exec_mode": "fork_mode"
     }
   ]
 }
