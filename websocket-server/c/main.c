@@ -7,6 +7,14 @@
 
 #define MAX_CLIENTS 2
 #define MAX_PAYLOAD_SIZE 1024
+#define KGRN "\033[0;32;32m"
+#define KCYN "\033[0;36m"
+#define KRED "\033[0;32;31m"
+#define KYEL "\033[1;33m"
+#define KBLU "\033[0;32;34m"
+#define KCYN_L "\033[1;36m"
+#define KBRN "\033[0;33m"
+#define RESET "\033[0m"
 
 int isRunning = 1;
 struct lws_context *lwsContext = NULL;
@@ -76,15 +84,6 @@ static int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason,
             clients[clientCount].wsi = wsi;
             snprintf(clients[clientCount].source, sizeof(clients[clientCount].source), "%s", source);
             clientCount++;
-
-            const char *msg = "{\"message\":\"Connection Established\"}";
-            unsigned char buf[LWS_PRE + MAX_PAYLOAD_SIZE];
-            memset(buf, 0, sizeof(buf));
-
-            if (strlen(msg) < MAX_PAYLOAD_SIZE) {
-                snprintf((char *)buf + LWS_PRE, MAX_PAYLOAD_SIZE, "%s", msg);
-                lws_write(wsi, buf + LWS_PRE, strlen(msg), LWS_WRITE_TEXT);
-            }
         } else {
             lws_close_reason(wsi, LWS_CLOSE_STATUS_GOINGAWAY, NULL, 0);
         }
@@ -100,8 +99,16 @@ static int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason,
                     if (strcmp(clients[i].source, to->valuestring) == 0) {
                         char *newMessageJSON = cJSON_Print(message);
                         if (newMessageJSON) {
-                            lws_write(clients[i].wsi, (unsigned char *)newMessageJSON, strlen(newMessageJSON), LWS_WRITE_TEXT);
-                            free(newMessageJSON);
+                            const size_t newMessageLen = strlen(newMessageJSON);
+                            char *out = NULL;
+
+                            out = (char *)malloc(sizeof(char)*(LWS_SEND_BUFFER_PRE_PADDING + newMessageLen + LWS_SEND_BUFFER_POST_PADDING));
+                            memcpy (out + LWS_SEND_BUFFER_PRE_PADDING, newMessageJSON, newMessageLen );
+
+                            lws_write(clients[i].wsi, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
+
+                            printf(KBLU"[websocket_write] %s\n"RESET, newMessageJSON);
+                            free(out);
                         }
                     }
                 }
