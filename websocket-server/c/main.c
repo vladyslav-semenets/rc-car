@@ -57,7 +57,7 @@ int extractQueryValue(const char *queryString, const char *key, char *output, si
 
     keyStart++;
     const char *valueEnd = strchr(keyStart, '&');
-    size_t valueLength = valueEnd ? (size_t)(valueEnd - keyStart) : strlen(keyStart);
+    size_t valueLength = valueEnd ? (size_t) (valueEnd - keyStart) : strlen(keyStart);
 
     if (valueLength >= outputSize) {
         return 0;
@@ -68,72 +68,78 @@ int extractQueryValue(const char *queryString, const char *key, char *output, si
     return 1;
 }
 
-static int callbackWebsocket(struct lws *wsi, enum lws_callback_reasons reason,
-                              void *user, void *in, size_t len) {
-
+static int callbackWebsocket(
+    struct lws *wsi,
+    enum lws_callback_reasons reason,
+    void *user,
+    void *in,
+    size_t len
+) {
     char query[256] = {0};
     char source[128] = {0};
 
     switch (reason) {
-    case LWS_CALLBACK_ESTABLISHED: {
-        if (lws_hdr_copy_fragment(wsi, query, sizeof(query), WSI_TOKEN_HTTP_URI_ARGS, 0) > 0) {
-            extractQueryValue(query, "source", source, sizeof(source));
+        case LWS_CALLBACK_ESTABLISHED: {
+            if (lws_hdr_copy_fragment(wsi, query, sizeof(query), WSI_TOKEN_HTTP_URI_ARGS, 0) > 0) {
+                extractQueryValue(query, "source", source, sizeof(source));
+
+                if (clientCount < MAX_CLIENTS) {
+                    clients[clientCount].wsi = wsi;
+                    snprintf(clients[clientCount].source, sizeof(clients[clientCount].source), "%s", source);
+                    clientCount++;
+                } else {
+                    lws_close_reason(wsi, LWS_CLOSE_STATUS_GOINGAWAY, NULL, 0);
+                }
+            }
+            break;
         }
 
-        if (clientCount < MAX_CLIENTS) {
-            clients[clientCount].wsi = wsi;
-            snprintf(clients[clientCount].source, sizeof(clients[clientCount].source), "%s", source);
-            clientCount++;
-        } else {
-            lws_close_reason(wsi, LWS_CLOSE_STATUS_GOINGAWAY, NULL, 0);
-        }
-        break;
-    }
+        case LWS_CALLBACK_RECEIVE: {
+            cJSON *message = cJSON_Parse(in);
+            if (message) {
+                const cJSON *to = cJSON_GetObjectItemCaseSensitive(message, "to");
+                if (cJSON_IsString(to) && to->valuestring) {
+                    for (int i = 0; i < clientCount; i++) {
+                        if (strcmp(clients[i].source, to->valuestring) == 0) {
+                            char *newMessageJSON = cJSON_Print(message);
+                            if (newMessageJSON) {
+                                const size_t newMessageLen = strlen(newMessageJSON);
+                                char *out = NULL;
 
-    case LWS_CALLBACK_RECEIVE: {
-        cJSON *message = cJSON_Parse(in);
-        if (message) {
-            const cJSON *to = cJSON_GetObjectItemCaseSensitive(message, "to");
-            if (cJSON_IsString(to) && to->valuestring) {
-                for (int i = 0; i < clientCount; i++) {
-                    if (strcmp(clients[i].source, to->valuestring) == 0) {
-                        char *newMessageJSON = cJSON_Print(message);
-                        if (newMessageJSON) {
-                            const size_t newMessageLen = strlen(newMessageJSON);
-                            char *out = NULL;
+                                out = (char *) malloc(
+                                    sizeof(char) * (
+                                        LWS_SEND_BUFFER_PRE_PADDING + newMessageLen + LWS_SEND_BUFFER_POST_PADDING));
+                                memcpy(out + LWS_SEND_BUFFER_PRE_PADDING, newMessageJSON, newMessageLen);
 
-                            out = (char *)malloc(sizeof(char)*(LWS_SEND_BUFFER_PRE_PADDING + newMessageLen + LWS_SEND_BUFFER_POST_PADDING));
-                            memcpy (out + LWS_SEND_BUFFER_PRE_PADDING, newMessageJSON, newMessageLen );
+                                lws_write(clients[i].wsi, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
 
-                            lws_write(clients[i].wsi, out + LWS_SEND_BUFFER_PRE_PADDING, len, LWS_WRITE_TEXT);
-
-                            printf(KBLU"[websocket_write to %s] %s\n"RESET, to->valuestring, newMessageJSON);
-                            free(out);
+                                printf(KBLU"[websocket_write to %s] %s\n"RESET, to->valuestring, newMessageJSON);
+                                free(out);
+                            }
                         }
                     }
                 }
+                cJSON_Delete(message);
             }
-            cJSON_Delete(message);
+            break;
         }
-        break;
-    }
 
-    case LWS_CALLBACK_CLOSED: {
-        for (int i = 0; i < clientCount; i++) {
-            if (clients[i].wsi == wsi) {
-                for (int j = i; j < clientCount - 1; j++) {
-                    clients[j] = clients[j + 1];
+        case LWS_CALLBACK_CLOSED: {
+            for (int i = 0; i < clientCount; i++) {
+                if (clients[i].wsi == wsi) {
+                    for (int j = i; j < clientCount - 1; j++) {
+                        clients[j] = clients[j + 1];
+                    }
+                    clientCount--;
+                    memset(&clients[clientCount], 0, sizeof(Clients));
+                    break;
                 }
-                clientCount--;
-                memset(&clients[clientCount], 0, sizeof(Clients));
-                break;
             }
+            break;
         }
-        break;
-    }
 
-    default:
-        break;
+        default:
+            break;
     }
 
     return 0;
@@ -143,7 +149,9 @@ int main() {
     struct lws_context_creation_info contextCreationInfo;
     memset(&contextCreationInfo, 0, sizeof(contextCreationInfo));
     contextCreationInfo.port = 8585;
-    contextCreationInfo.protocols = (struct lws_protocols[]){{"websocket", callbackWebsocket, 0, 0}, {NULL, NULL, 0, 0}};
+    contextCreationInfo.protocols = (struct lws_protocols[]){
+        {"websocket", callbackWebsocket, 0, 0}, {NULL, NULL, 0, 0}
+    };
 
     lwsContext = lws_create_context(&contextCreationInfo);
     if (!lwsContext) {
@@ -157,7 +165,7 @@ int main() {
         lws_service(lwsContext, 1000);
 
         if (!isRunning) {
-           break;
+            break;
         }
     }
 }
