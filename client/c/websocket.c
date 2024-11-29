@@ -85,7 +85,7 @@ WebSocketConnection connectToWebSocketServer(void) {
 
     memset(&connectionInfo, 0, sizeof(connectionInfo));
     connectionInfo.context = lwsContext;
-    connectionInfo.address = "100.108.40.34";
+    connectionInfo.address = getenv("RASPBERRY_PI_IP");
     connectionInfo.port = WEB_SOCKET_PORT;
     connectionInfo.path = "/?source=rc-car-client";
 
