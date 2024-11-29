@@ -17,4 +17,4 @@ link_directories(/opt/homebrew/lib /usr/lib client/c/libs/env)
 add_executable(raspberrypiclient main.c websocket.h websocket.c rc-car.c rc-car.h libs/env/dotenv.c libs/env/dotenv.h)
 
 # Link the libwebsockets library
-target_link_libraries(raspberrypiclient websockets ssl crypto SDL2 cjson)
+target_link_libraries(raspberrypiclient websockets ssl crypto cjson)
