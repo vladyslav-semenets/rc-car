@@ -2,16 +2,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <pigpio.h>
 #include "rc-car.h"
 #include "websocket.h"
-
-void gpioWrite(int gpio, int level) {
-    printf("Set GPIO %d to level %d (mock)\n", gpio, level);
-}
-
-void gpioServo(int gpio, int level) {
-    printf("Set GPIO %d to level %d (mock)\n", gpio, level);
-}
 
 void turnTo(RcCar *self, const float *degrees) {
     const int pulseWidth = (int)floor(
