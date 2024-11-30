@@ -30,7 +30,7 @@ void move(const int *speed, const char *direction) {
         );
     }
 
-    gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
+    gpioServo(CAR_ESC_PIN, pulseWidth);
 }
 
 void setEscToNeutralPosition() {
