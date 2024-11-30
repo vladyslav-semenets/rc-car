@@ -103,8 +103,10 @@ void processWebSocketEvents(const char *message) {
             case FORWARD:
             case BACKWARD: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "speed");
-                const int speed = (int) strtof(rawDegrees->valuestring, NULL);
-                move(&speed, rawAction->valuestring);
+                const int speed = (int)strtof(rawDegrees->valuestring, NULL);
+                printf("Pulse width = %d\n", *(speed));
+
+                //move(&speed, rawAction->valuestring);
             }
             break;
             case SET_ESC_TO_NEUTRAL_POSITION: {
