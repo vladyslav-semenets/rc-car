@@ -103,7 +103,7 @@ void forward(RcCar *self, const int *speed) {
 
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "forward");
-    cJSON_AddStringToObject(data, "carSpeed", forwardBackwardActionPayloadData.carSpeed);
+    cJSON_AddStringToObject(data, "speed", forwardBackwardActionPayloadData.carSpeed);
 
     const char *payload = prepareActionPayload(data);
 
@@ -122,7 +122,7 @@ void backward(RcCar *self, const int *speed) {
 
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "backward");
-    cJSON_AddStringToObject(data, "carSpeed", forwardBackwardActionPayloadData.carSpeed);
+    cJSON_AddStringToObject(data, "speed", forwardBackwardActionPayloadData.carSpeed);
 
     const char *payload = prepareActionPayload(data);
 
@@ -168,7 +168,7 @@ void init(RcCar *self) {
 
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "init");
-    cJSON_AddStringToObject(data, "carSpeed", speedAsString);
+    cJSON_AddStringToObject(data, "speed", speedAsString);
     cJSON_AddStringToObject(data, "degrees", axisXDegreesAsString);
     const char *payload = prepareActionPayload(data);
 
