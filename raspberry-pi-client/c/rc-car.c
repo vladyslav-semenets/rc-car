@@ -18,8 +18,6 @@ void turnTo(const float *degrees) {
 void move(const int *speed, const char *direction) {
     int pulseWidth = CAR_ESC_NEUTRAL_PWM;
 
-    printf("Pulse width = %d\n", *(speed));
-
     if (strcmp(direction, "forward") == 0) {
         pulseWidth = (int)floorf(
             CAR_ESC_NEUTRAL_PWM +
@@ -104,9 +102,7 @@ void processWebSocketEvents(const char *message) {
             case BACKWARD: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "speed");
                 const int speed = (int)strtof(rawDegrees->valuestring, NULL);
-                printf("Pulse width = %d\n", speed);
-
-                //move(&speed, rawAction->valuestring);
+                move(&speed, rawAction->valuestring);
             }
             break;
             case SET_ESC_TO_NEUTRAL_POSITION: {
