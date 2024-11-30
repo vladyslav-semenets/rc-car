@@ -18,19 +18,19 @@ void turnTo(const float *degrees) {
 void move(const int *speed, const char *direction) {
     int pulseWidth = CAR_ESC_NEUTRAL_MAX_PWM;
 
+    printf("Pulse width = %d\n", *(speed);
+
     if (strcmp(direction, "forward") == 0) {
         pulseWidth = (int)floorf(
             CAR_ESC_NEUTRAL_PWM +
-            ((float)(*speed) / 100.0f) * (CAR_ESC_NEUTRAL_MAX_PWM - CAR_ESC_NEUTRAL_PWM)
+            ((float)(*speed) / 100.0f) * (CAR_ESC_MAX_PWM - CAR_ESC_NEUTRAL_PWM)
         );
     } else if (strcmp(direction, "backward") == 0) {
         pulseWidth = (int)floorf(
             CAR_ESC_NEUTRAL_PWM +
-            ((float)(*speed) / 100.0f) * (CAR_ESC_NEUTRAL_PWM - CAR_ESC_NEUTRAL_MIN_PWM)
+            ((float)(*speed) / 100.0f) * (CAR_ESC_NEUTRAL_PWM - CAR_ESC_MIN_PWM)
         );
     }
-
-    printf("Pulse width = %d\n", pulseWidth);
 
     gpioServo(CAR_ESC_PIN, pulseWidth);
 }
