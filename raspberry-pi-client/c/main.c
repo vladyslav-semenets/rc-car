@@ -24,6 +24,10 @@ void handleSignal(const int signal) {
     }
 }
 
+void processWebSocketEvents(const char *message) {
+    rcCar->processWebSocketEvents(rcCar, message);
+}
+
 int main() {
     if (gpioInitialise() < 0) {
         fprintf(stderr, "pigpio initialization failed\n");
@@ -47,7 +51,7 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    setWebSocketEventCallback(rcCar->processWebSocketEvents);
+    setWebSocketEventCallback(processWebSocketEvents);
 
     while (isRunning) {
         lws_service(webSocketConnection.context, 100);
