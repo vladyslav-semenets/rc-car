@@ -10,16 +10,7 @@
 #define CAR_ESC_NEUTRAL_MAX_PWM 2000
 
 typedef struct RcCar {
-    struct lws *webSocketInstance;
-    float degreeOfTurns;
-    void (*processWebSocketEvents)(struct RcCar *self, const char *message);
-    void (*turnTo)(struct RcCar *self, const float *degrees);
-    void (*changDegreeOfTurns)(struct RcCar *self);
-    void (*startCamera)(struct RcCar *self);
-    void (*stopCamera)(struct RcCar *self);
-    void (*move)(struct RcCar *self, const int *speed, const char *direction);
-    void (*setEscToNeutralPosition)(struct RcCar *self);
-    void (*resetTurns)(struct RcCar *self);
+    void (*processWebSocketEvents)(const char *message);
 } RcCar;
 RcCar *newRcCar();
 #endif

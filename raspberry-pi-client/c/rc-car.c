@@ -7,7 +7,7 @@
 #include "rc-car.h"
 #include "websocket.h"
 
-void turnTo(RcCar *self, const float *degrees) {
+void turnTo(const float *degrees) {
     const int pulseWidth = (int)floor(
         CAR_TURNS_MIN_PWM +
         ((*degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM))
@@ -15,7 +15,7 @@ void turnTo(RcCar *self, const float *degrees) {
     gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
 }
 
-void move(RcCar *self, const int *speed, const char *direction) {
+void move(const int *speed, const char *direction) {
     int pulseWidth = CAR_ESC_NEUTRAL_MAX_PWM;
 
     if (strcmp(direction, "forward") == 0) {
@@ -33,15 +33,15 @@ void move(RcCar *self, const int *speed, const char *direction) {
     gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
 }
 
-void setEscToNeutralPosition(RcCar *self) {
+void setEscToNeutralPosition() {
     gpioServo(CAR_TURNS_SERVO_PIN, CAR_ESC_NEUTRAL_PWM);
 }
 
-void startCamera(RcCar *self) {
+void startCamera() {
 
 }
 
-void stopCamera(RcCar *self) {
+void stopCamera() {
 
 }
 
@@ -76,7 +76,7 @@ ActionType getActionType(const char *action) {
     }
 }
 
-void processWebSocketEvents(RcCar *self, const char *message) {
+void processWebSocketEvents(const char *message) {
     cJSON *json = cJSON_Parse(message);
     const cJSON *data = cJSON_GetObjectItem(json, "data");
     const cJSON *rawAction = cJSON_GetObjectItem(data, "action");
@@ -86,8 +86,8 @@ void processWebSocketEvents(RcCar *self, const char *message) {
             case INIT: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
                 const float degrees = strtof(rawDegrees->valuestring, NULL);
-                self->turnTo(rcCar, &degrees);
-                self->setEscToNeutralPosition(rcCar);
+                turnTo(&degrees);
+                setEscToNeutralPosition();
             }
             break;
             case CHANGE_DEGREE_OF_TURNS:
@@ -95,18 +95,18 @@ void processWebSocketEvents(RcCar *self, const char *message) {
             case TURN_TO: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
                 const float degrees = strtof(rawDegrees->valuestring, NULL);
-                self->turnTo(rcCar, &degrees);
+                turnTo(&degrees);
             }
             break;
             case FORWARD:
             case BACKWARD: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "speed");
                 const int speed = (int) strtof(rawDegrees->valuestring, NULL);
-                self->move(rcCar, &speed, rawAction->valuestring);
+                move(&speed, rawAction->valuestring);
             }
             break;
             case SET_ESC_TO_NEUTRAL_POSITION: {
-                self->setEscToNeutralPosition(rcCar);
+                setEscToNeutralPosition();
             }
             break;
 
@@ -120,12 +120,6 @@ void processWebSocketEvents(RcCar *self, const char *message) {
 
 RcCar *newRcCar() {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
-    rcCar->degreeOfTurns = 87.0f;
-    rcCar->turnTo = turnTo;
-    rcCar->move = move;
-    rcCar->setEscToNeutralPosition = setEscToNeutralPosition;
-    rcCar->startCamera = startCamera;
-    rcCar->stopCamera = stopCamera;
     rcCar->processWebSocketEvents = processWebSocketEvents;
     return rcCar;
 }

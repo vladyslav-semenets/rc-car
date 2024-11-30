@@ -18,14 +18,11 @@ void handleSignal(const int signal) {
         case SIGTSTP:
             isRunning = 0;
             closeWebSocketServer();
+            free(rcCar);
             exit(0);
         default:
             break;
     }
-}
-
-void processWebSocketEvents(const char *message) {
-    rcCar->processWebSocketEvents(rcCar, message);
 }
 
 int main() {
@@ -51,7 +48,7 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    setWebSocketEventCallback(processWebSocketEvents);
+    setWebSocketEventCallback(rcCar->processWebSocketEvents);
 
     while (isRunning) {
         lws_service(webSocketConnection.context, 100);
