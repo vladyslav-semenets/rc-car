@@ -16,9 +16,9 @@ void turnTo(const float *degrees) {
 }
 
 void move(const int *speed, const char *direction) {
-    int pulseWidth = CAR_ESC_NEUTRAL_MAX_PWM;
+    int pulseWidth = CAR_ESC_NEUTRAL_PWM;
 
-    printf("Pulse width = %d\n", *(speed);
+    printf("Pulse width = %d\n", *(speed));
 
     if (strcmp(direction, "forward") == 0) {
         pulseWidth = (int)floorf(
