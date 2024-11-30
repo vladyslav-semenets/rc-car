@@ -30,6 +30,8 @@ void move(const int *speed, const char *direction) {
         );
     }
 
+    printf("Pulse width = %d\n", pulseWidth);
+
     gpioServo(CAR_ESC_PIN, pulseWidth);
 }
 
