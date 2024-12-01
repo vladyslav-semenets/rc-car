@@ -34,7 +34,7 @@ void move(const int *speed, const char *direction) {
 }
 
 void setEscToNeutralPosition() {
-    gpioServo(CAR_TURNS_SERVO_PIN, CAR_ESC_NEUTRAL_PWM);
+    gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM);
 }
 
 void startCamera() {
