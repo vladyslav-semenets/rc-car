@@ -84,13 +84,11 @@ void startCamera() {
     char configPath[1024];
     char configFilename[] = "mediamtx.yml";
 
-    // Get the current working directory
     if (getcwd(configPath, sizeof(configPath)) == NULL) {
         perror("getcwd");
         exit(EXIT_FAILURE);
     }
 
-    // Append the config filename to the working directory
     strcat(configPath, "/");
     strcat(configPath, configFilename);
 
@@ -99,8 +97,7 @@ void startCamera() {
     if (mediaMtxPid == -1) {
         perror("fork");
         exit(EXIT_FAILURE);
-    } else if (mediaMtxPid == 0) {
-        execlp("/home/vladyslav/mediametx/mediamtx", "mediamtx", configPath, NULL);
+        execlp(getenv("MEDIAMTX_RUN_PATH"), "mediamtx", configPath, NULL);
         perror("execlp");
         exit(EXIT_FAILURE);
     }
