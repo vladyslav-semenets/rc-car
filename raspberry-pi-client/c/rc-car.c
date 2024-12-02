@@ -100,7 +100,7 @@ void startCamera() {
         perror("fork");
         exit(EXIT_FAILURE);
     } else if (mediaMtxPid == 0) {
-        execlp("mediamtx", "mediamtx", config_path, NULL);
+        execlp("mediamtx", config_path, NULL);
         perror("execlp");
         exit(EXIT_FAILURE);
     }
