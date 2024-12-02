@@ -81,28 +81,26 @@ void setEscToNeutralPosition() {
 }
 
 void startCamera() {
-    char config_path[1024];
+    char configPath[1024];
     char configFilename[] = "mediamtx.yml";
 
     // Get the current working directory
-    if (getcwd(config_path, sizeof(config_path)) == NULL) {
+    if (getcwd(configPath, sizeof(configPath)) == NULL) {
         perror("getcwd");
         exit(EXIT_FAILURE);
     }
 
     // Append the config filename to the working directory
-    strcat(config_path, "/");
-    strcat(config_path, configFilename);
+    strcat(configPath, "/");
+    strcat(configPath, configFilename);
 
      mediaMtxPid = fork();
-
-     printf("Media Mtx configFilename: %s\n", config_path);
 
     if (mediaMtxPid == -1) {
         perror("fork");
         exit(EXIT_FAILURE);
     } else if (mediaMtxPid == 0) {
-        execlp("mediamtx", config_path, NULL);
+        execlp("mediamtx", "mediamtx", configPath, NULL);
         perror("execlp");
         exit(EXIT_FAILURE);
     }
