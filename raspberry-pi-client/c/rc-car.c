@@ -3,9 +3,52 @@
 #include <stdio.h>
 #include <math.h>
 #include <pigpio.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <cjson/cJSON.h>
 #include "rc-car.h"
 #include "websocket.h"
+
+pid_t mediaMtxPid = -1;
+
+typedef enum {
+    TURN_TO,
+    FORWARD,
+    BACKWARD,
+    RESET_TURNS,
+    START_CAMERA,
+    STOP_CAMERA,
+    CHANGE_DEGREE_OF_TURNS,
+    INIT,
+    SET_ESC_TO_NEUTRAL_POSITION,
+    ACTION_UNKNOWN
+} ActionType;
+
+ActionType getActionType(const char *action) {
+    if (strcmp(action, "turn-to") == 0) {
+        return TURN_TO;
+    } else if (strcmp(action, "reset-turns") == 0) {
+        return RESET_TURNS;
+    } else if (strcmp(action, "change-degree-of-turns") == 0) {
+        return CHANGE_DEGREE_OF_TURNS;
+    } else if (strcmp(action, "forward") == 0) {
+        return FORWARD;
+    } else if (strcmp(action, "backward") == 0) {
+        return BACKWARD;
+    } else if (strcmp(action, "set-esc-to-neutral-position") == 0) {
+        return SET_ESC_TO_NEUTRAL_POSITION;
+    } else if (strcmp(action, "init") == 0) {
+        return INIT;
+    } else if (strcmp(action, "start-camera") == 0) {
+        return START_CAMERA;
+    } else if (strcmp(action, "stop-camera") == 0) {
+        return STOP_CAMERA;
+    } else {
+        return ACTION_UNKNOWN;
+    }
+}
 
 void turnTo(const float *degrees) {
     const int pulseWidth = (int)floor(
@@ -38,41 +81,32 @@ void setEscToNeutralPosition() {
 }
 
 void startCamera() {
+     mediaMtxPid = fork();
 
+    if (mediaMtxPid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    } else if (mediaMtxPid == 0) {
+        execlp("mediamtx", "mediamtx");
+        perror("execlp");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("MediaMTX started with PID %d\n", mediaMtxPid);
 }
 
 void stopCamera() {
-
-}
-
-typedef enum {
-    TURN_TO,
-    FORWARD,
-    BACKWARD,
-    RESET_TURNS,
-    CHANGE_DEGREE_OF_TURNS,
-    INIT,
-    SET_ESC_TO_NEUTRAL_POSITION,
-    ACTION_UNKNOWN
-} ActionType;
-
-ActionType getActionType(const char *action) {
-    if (strcmp(action, "turn-to") == 0) {
-        return TURN_TO;
-    } else if (strcmp(action, "reset-turns") == 0) {
-        return RESET_TURNS;
-    } else if (strcmp(action, "change-degree-of-turns") == 0) {
-        return CHANGE_DEGREE_OF_TURNS;
-    } else if (strcmp(action, "forward") == 0) {
-        return FORWARD;
-    } else if (strcmp(action, "backward") == 0) {
-        return BACKWARD;
-    } else if (strcmp(action, "set-esc-to-neutral-position") == 0) {
-        return SET_ESC_TO_NEUTRAL_POSITION;
-    } else if (strcmp(action, "init") == 0) {
-        return INIT;
+    if (kill(mediaMtxPid, SIGTERM) == 0) {
+        printf("MediaMTX process (PID %d) terminated successfully.\n", mediaMtxPid);
+        int status;
+        waitpid(mediaMtxPid, &status, 0);
+        if (WIFEXITED(status)) {
+            printf("MediaMTX exited with status %d.\n", WEXITSTATUS(status));
+        } else if (WIFSIGNALED(status)) {
+            printf("MediaMTX was terminated by signal %d.\n", WTERMSIG(status));
+        }
     } else {
-        return ACTION_UNKNOWN;
+        perror("Failed to terminate MediaMTX process");
     }
 }
 
@@ -107,6 +141,14 @@ void processWebSocketEvents(const char *message) {
             break;
             case SET_ESC_TO_NEUTRAL_POSITION: {
                 setEscToNeutralPosition();
+            }
+            break;
+            case STOP_CAMERA: {
+                stopCamera();
+            }
+            break;
+            case START_CAMERA: {
+                startCamera();
             }
             break;
 
