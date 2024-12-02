@@ -96,7 +96,7 @@ void startCamera() {
 
      mediaMtxPid = fork();
 
-     printf("Media Mtx configFilename: %s\n", configFilename);
+     printf("Media Mtx configFilename: %s\n", config_path);
 
     if (mediaMtxPid == -1) {
         perror("fork");
