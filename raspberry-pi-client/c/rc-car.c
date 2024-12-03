@@ -21,6 +21,7 @@ typedef enum {
     START_CAMERA,
     STOP_CAMERA,
     CAMERA_GIMBAL_TURN_TO,
+    CAMERA_GIMBAL_SET_PITCH_ANGLE,
     RESET_CAMERA_GIMBAL,
     CHANGE_DEGREE_OF_TURNS,
     INIT,
@@ -41,7 +42,9 @@ ActionType getActionType(const char *action) {
         return BACKWARD;
     } else if (strcmp(action, "camera-gimbal-turn-to") == 0) {
         return CAMERA_GIMBAL_TURN_TO;
-    } else if (strcmp(action, "reset-camera-gimbal") == 0) {
+    } else if (strcmp(action, "camera-gimbal-set-pitch-angle") == 0) {
+        return CAMERA_GIMBAL_SET_PITCH_ANGLE;
+    }  else if (strcmp(action, "reset-camera-gimbal") == 0) {
         return RESET_CAMERA_GIMBAL;
     } else if (strcmp(action, "set-esc-to-neutral-position") == 0) {
         return SET_ESC_TO_NEUTRAL_POSITION;
@@ -127,6 +130,13 @@ void cameraGimbalSetYaw(const float *degrees) {
     gpioServo(CAR_CAMERA_GIMBAL_PIN4, pulseWidth);
 }
 
+void cameraGimbalSetPitch(const float *degrees) {
+    const int pulseWidth = (int)floorf(
+       ((*degrees + 90) / 180.0f) * (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) + CAR_CAMERA_GIMBAL_MIN_PMW
+    );
+    gpioServo(CAR_CAMERA_GIMBAL_PIN3, pulseWidth);
+}
+
 void processWebSocketEvents(const char *message) {
     cJSON *json = cJSON_Parse(message);
     const cJSON *data = cJSON_GetObjectItem(json, "data");
@@ -173,6 +183,12 @@ void processWebSocketEvents(const char *message) {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
                 const float degrees = strtof(rawDegrees->valuestring, NULL);
                 cameraGimbalSetYaw(&degrees);
+            }
+            break;
+            case CAMERA_GIMBAL_SET_PITCH_ANGLE: {
+                const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
+                const float degrees = strtof(rawDegrees->valuestring, NULL);
+                cameraGimbalSetPitch(&degrees);
             }
             break;
             case RESET_CAMERA_GIMBAL: {
