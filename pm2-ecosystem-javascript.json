@@ -6,7 +6,8 @@
     },
     {
       "name": "websocket-server-javascript",
-      "script" : "./websocket-server/javascript/index.mjs"
+      "script" : "./websocket-server/javascript/index.mjs",
+      "node_args": ["--env-file=raspberry-pi-client/javascript/.env"]
     }
   ]
 }
