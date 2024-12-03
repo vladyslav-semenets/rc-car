@@ -184,9 +184,9 @@ void cameraGimbalTurn(RcCar *self, const float *degrees) {
 void cameraGimbalSetPitchAngle(RcCar *self, const char *direction) {
     int pitchAngle = self->pitchAngle;
 
-    if (strcmp(direction, "bottom") == 0) {
-        pitchAngle = pitchAngle * -1;
-    }
+    // if (strcmp(direction, "bottom") != 0) {
+    //     pitchAngle = pitchAngle * -1;
+    // }
 
     int len = snprintf(NULL, 0, "%d", pitchAngle);
     char *axisXDegreesAsString = malloc(len + 1);
@@ -240,7 +240,7 @@ RcCar *newRcCar(struct lws *webSocketInstance) {
     rcCar->webSocketInstance = webSocketInstance;
     rcCar->degreeOfTurns = 83.0f;
     rcCar->speed = 50;
-    rcCar->pitchAngle = 90;
+    rcCar->pitchAngle = 0;
     rcCar->turn = turnCar;
     rcCar->cameraGimbalTurn = cameraGimbalTurn;
     rcCar->cameraGimbalSetPitchAngle = cameraGimbalSetPitchAngle;
