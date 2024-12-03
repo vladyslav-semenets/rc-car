@@ -6,6 +6,8 @@ typedef struct RcCar {
     int speed;
     void (*init)(struct RcCar *self);
     void (*turn)(struct RcCar *self, const float *degrees);
+    void (*resetCameraGimbal)(struct RcCar *self);
+    void (*cameraGimbalTurn)(struct RcCar *self, const float *degrees);
     void (*changDegreeOfTurns)(struct RcCar *self);
     void (*startCamera)(struct RcCar *self);
     void (*stopCamera)(struct RcCar *self);

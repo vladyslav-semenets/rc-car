@@ -33,6 +33,9 @@ int main() {
 
     gpioSetMode(CAR_TURNS_SERVO_PIN, PI_OUTPUT);
     gpioSetMode(CAR_ESC_PIN, PI_OUTPUT);
+    gpioSetMode(CAR_CAMERA_GIMBAL_PIN1, PI_OUTPUT);
+    gpioSetMode(CAR_CAMERA_GIMBAL_PIN3, PI_OUTPUT);
+    gpioSetMode(CAR_CAMERA_GIMBAL_PIN4, PI_OUTPUT);
 
     rcCar = newRcCar();
     env_load(".env", false);

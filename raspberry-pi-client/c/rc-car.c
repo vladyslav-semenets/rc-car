@@ -20,6 +20,8 @@ typedef enum {
     RESET_TURNS,
     START_CAMERA,
     STOP_CAMERA,
+    CAMERA_GIMBAL_TURN_TO,
+    RESET_CAMERA_GIMBAL,
     CHANGE_DEGREE_OF_TURNS,
     INIT,
     SET_ESC_TO_NEUTRAL_POSITION,
@@ -37,6 +39,10 @@ ActionType getActionType(const char *action) {
         return FORWARD;
     } else if (strcmp(action, "backward") == 0) {
         return BACKWARD;
+    } else if (strcmp(action, "camera-gimbal-turn-to") == 0) {
+        return CAMERA_GIMBAL_TURN_TO;
+    } else if (strcmp(action, "reset-camera-gimbal") == 0) {
+        return RESET_CAMERA_GIMBAL;
     } else if (strcmp(action, "set-esc-to-neutral-position") == 0) {
         return SET_ESC_TO_NEUTRAL_POSITION;
     } else if (strcmp(action, "init") == 0) {
@@ -110,6 +116,18 @@ void stopCamera() {
     }
 }
 
+void initCameraGimbal() {
+    gpioServo(CAR_CAMERA_GIMBAL_PIN1, CAR_CAMERA_GIMBAL_MAX_PMW);
+}
+
+void cameraGimbalSetYaw(const float *degrees) {
+    const int pulseWidth = (int)floorf(
+       ((*degrees + 90) / 180.0f) * (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) + CAR_CAMERA_GIMBAL_MIN_PMW
+    );
+
+    gpioServo(CAR_CAMERA_GIMBAL_PIN4, pulseWidth);
+}
+
 void processWebSocketEvents(const char *message) {
     cJSON *json = cJSON_Parse(message);
     const cJSON *data = cJSON_GetObjectItem(json, "data");
@@ -122,6 +140,7 @@ void processWebSocketEvents(const char *message) {
                 const float degrees = strtof(rawDegrees->valuestring, NULL);
                 turnTo(&degrees);
                 setEscToNeutralPosition();
+                initCameraGimbal();
             }
             break;
             case CHANGE_DEGREE_OF_TURNS:
@@ -149,6 +168,17 @@ void processWebSocketEvents(const char *message) {
             break;
             case START_CAMERA: {
                 startCamera();
+            }
+            break;
+            case CAMERA_GIMBAL_TURN_TO: {
+                const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
+                const float degrees = strtof(rawDegrees->valuestring, NULL);
+                cameraGimbalSetYaw(&degrees);
+            }
+            break;
+            case RESET_CAMERA_GIMBAL: {
+                const float degrees = 0;
+                cameraGimbalSetYaw(&degrees);
             }
             break;
 

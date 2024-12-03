@@ -121,7 +121,7 @@ export class AppComponent implements OnInit {
 	}
 
 	public resetCameraGimbal(): void {
-		this.sendSocketMessage('reset-turns', {});
+		this.sendSocketMessage('reset-camera-gimbal', {});
 	}
 
 	public onChangeDegreeOfTurns(value: number): void {

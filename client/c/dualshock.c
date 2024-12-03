@@ -124,34 +124,26 @@ struct AnalogValues calculateLeftAnalogStickValues() {
     return result;
 }
 
-float axisXToDegrees(const int axisX) {
-    float degrees;
+static float mapStickToDegrees(const int stickValue, const float degreeMin, const float degreeMax, const float step) {
+    float angle;
 
-    if (axisX < 0) {
-        degrees = 180 - ((float)(axisX + 32768) / 32768.0f) * 90.0f;
-        if (degrees < 90) {
-            degrees = 90;
-        }
+    if (stickValue >= 0) {
+        angle = degreeMax - (float)stickValue / 32768 * (degreeMax - degreeMin);
+        angle = roundf(angle / step) * step;
+        return fminf(fmaxf(angle, fminf(degreeMin, degreeMax)), fmaxf(degreeMin, degreeMax));
     } else {
-        degrees = 90 - ((float)(axisX) / 32768.0f) * 90.0f;
-        if (degrees < 0) {
-            degrees = 0;
-        }
-    }
+        const float clampedValue = fmaxf((float)stickValue, -32768);
+        angle = degreeMax + ((clampedValue + 32768) / 32768) * (degreeMin - degreeMax);
+        const float roundedAngle = roundf(angle / step) * step;
 
-    return degrees;
+        return fmaxf(degreeMin, fminf(roundedAngle, degreeMax));
+    }
 }
 
 int buttonValueToSpeed(SDL_GameControllerAxis axis) {
     const int value = SDL_GameControllerGetAxis(controller, axis);
 
     return (int)roundf((float)value / MAX_AXIS_VALUE * 100);
-}
-
-float getAxisXDegrees(SDL_GameControllerAxis axis) {
-    const int axisX = SDL_GameControllerGetAxis(controller, axis);
-
-    return axisXToDegrees(axisX);
 }
 
 int initJoystick() {
@@ -195,7 +187,14 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
             state->leftAnalogStickValues = values;
 
             if (pressed && previouslyPressed) {
-                const float degrees = getAxisXDegrees(SDL_CONTROLLER_AXIS_LEFTX);
+                float degrees = 0;
+                const int axisXValue = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+                if (axisXValue > 0) {
+                    degrees = mapStickToDegrees(axisXValue, 0, rcCar->degreeOfTurns, 0.01);
+                } else {
+                    degrees = mapStickToDegrees(axisXValue, rcCar->degreeOfTurns, 140, 0.01);
+                }
+
                 rcCar->turn(rcCar, &degrees);
             } else if (!pressed && previouslyPressed) {
                 rcCar->resetTurns(rcCar);
@@ -215,11 +214,16 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
             state->rightAnalogStickValues = values;
 
             if (pressed && previouslyPressed) {
-                const float degrees = getAxisXDegrees(SDL_CONTROLLER_AXIS_RIGHTX);
-                //rcCar->turn(rcCar, &degrees);
-                printf("gimbal %f\n", degrees);
+                float degrees = 0;
+                const int axisXValue = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+                if (axisXValue > 0) {
+                    degrees = mapStickToDegrees(axisXValue, 90, 0, 0.01);
+                } else {
+                    degrees = mapStickToDegrees(axisXValue, 0, 90, 0.01) * -1;
+                }
+                rcCar->cameraGimbalTurn(rcCar, &degrees);
             } else if (!pressed && previouslyPressed) {
-                // rcCar->resetTurns(rcCar);
+                rcCar->resetCameraGimbal(rcCar);
             }
         }
 
