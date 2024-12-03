@@ -81,28 +81,18 @@ void setEscToNeutralPosition() {
 }
 
 void startCamera() {
-    char configPath[1024];
-    char configFilename[] = "mediamtx.yml";
-
-    if (getcwd(configPath, sizeof(configPath)) == NULL) {
-        perror("getcwd");
-        exit(EXIT_FAILURE);
-    }
-
-    strcat(configPath, "/");
-    strcat(configPath, configFilename);
-
-     mediaMtxPid = fork();
+    mediaMtxPid = fork();
 
     if (mediaMtxPid == -1) {
         perror("fork");
         exit(EXIT_FAILURE);
-        execlp(getenv("MEDIAMTX_RUN_PATH"), "mediamtx", configPath, NULL);
+    } else if (mediaMtxPid == 0) {
+        execlp(getenv("MEDIAMTX_BIN_PATH"), "mediamtx", getenv("MEDIAMTX_CONFIG_PATH"), NULL);
         perror("execlp");
         exit(EXIT_FAILURE);
     }
 
-    printf("MediaMTX started with PID %d\n", mediaMtxPid);
+    printf("MediaMTX started with PID %d \n", mediaMtxPid);
 }
 
 void stopCamera() {

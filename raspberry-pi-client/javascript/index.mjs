@@ -12,11 +12,7 @@ class CameraGimbal {
     }
 
     init() {
-        this.setPwmPulse(this.gmPwm1, this.maxPulseWidth);
-    }
-
-    setPwmPulse(pin, pulseWidth) {
-        pin.servoWrite(pulseWidth);
+        this.gmPwm1.servoWrite(this.maxPulseWidth);
     }
 
     angleToPulseWidth(angle) {
@@ -44,7 +40,6 @@ class CameraGimbal {
 }
 
 class CarController {
-    isEngineRunning = false;
     constructor() {
         this.servo = new Gpio(17, { mode: Gpio.OUTPUT });
         this.escPin = new Gpio(23, { mode: Gpio.OUTPUT });
@@ -54,22 +49,19 @@ class CarController {
         this.escNeutralPulseWidth = 1500;
 
         this.carSpeed = 50;
-        this.turnsDegrees = 87;
         this.minPulseWidth = 500;
         this.maxPulseWidth = 2500;
     }
 
-    speed2pwm(speed, direction) {
+    speedToPulseWidth(speed, direction) {
         speed = Math.max(1, Math.min(speed, 100));
 
-        let pulseWidth;
+        let pulseWidth = this.escNeutralPulseWidth;
 
         if (direction === 'forward') {
             pulseWidth = this.escNeutralPulseWidth + (speed / 100) * (this.escMaxPulseWidth - this.escNeutralPulseWidth);
         } else if (direction === 'backward') {
             pulseWidth = this.escNeutralPulseWidth - (speed / 100) * (this.escNeutralPulseWidth - this.escMinPulseWidth);
-        } else {
-            pulseWidth = this.escNeutralPulseWidth;
         }
 
         return pulseWidth;
@@ -84,15 +76,13 @@ class CarController {
         this.servo.servoWrite(pulseWidth);
     }
 
-    stopCar() {
+    stop() {
         setTimeout(() => {
             this.setEscSpeed(this.escNeutralPulseWidth);
 
             setTimeout(() => {
-                this.setEscSpeed(this.speed2pwm(50, 'backward'));
+                this.setEscSpeed(this.speedToPulseWidth(50, 'backward'));
             }, 200);
-
-            this.isEngineRunning = false;
         }, 200);
     }
 
@@ -101,27 +91,23 @@ class CarController {
         setTimeout(() => {
             this.setEscSpeed(this.escNeutralPulseWidth);
         }, 100);
-        this.isEngineRunning = false;
     }
 
     setEscToNeutralPosition() {
         this.setEscSpeed(this.escNeutralPulseWidth);
     }
 
-    moveCar(direction, speed) {
-        const pwmValue = this.speed2pwm(speed, direction);
+    move(direction, speed) {
+        const pwmValue = this.speedToPulseWidth(speed, direction);
         this.setEscSpeed(pwmValue);
-
-        this.isEngineRunning = true;
     }
 
     turn(degrees) {
-        this.turnsDegrees = degrees;
         this.setServoAngle(degrees);
     }
 }
 
-class MediamtxController {
+class MediaMtxController {
     constructor() {
         this.mediamtxProcess = null;
     }
@@ -131,7 +117,13 @@ class MediamtxController {
             return;
         }
 
-        this.mediamtxProcess = spawn('mediamtx', [], { stdio: ['inherit', 'inherit'] });
+        this.mediamtxProcess = spawn(
+            process.env.MEDIAMTX_BIN_PATH,
+            [process.env.MEDIAMTX_CONFIG_PATH],
+            {
+                stdio: ['inherit', 'inherit'],
+            },
+        );
     }
 
     stop() {
@@ -141,11 +133,11 @@ class MediamtxController {
 }
 
 class SocketController {
-    constructor(carController, mediamtxController, cameraGimbal) {
+    constructor(carController, mediaMtxController, cameraGimbal) {
         this.carController = carController;
-        this.mediamtxController = mediamtxController;
+        this.mediaMtxController = mediaMtxController;
         this.cameraGimbal = cameraGimbal;
-        this.wss = new WebSocket('ws://127.0.0.1:8585/?source=rc-car-server');
+        this.wss = new WebSocket(`ws://${process.env.RASPBERRY_PI_IP}:8585/?source=rc-car-server`);
         this.initSocket();
     }
 
@@ -159,8 +151,8 @@ class SocketController {
         });
 
         this.wss.on('close', () => {
-            this.carController?.stopCar();
-            this.mediamtxController?.stop();
+            this.carController?.stop();
+            this.mediaMtxController?.stop();
 
             this.wss.send(JSON.stringify({ to: 'rc-car-client', data: { status: 'stopped' } }));
 
@@ -182,9 +174,8 @@ class SocketController {
                 switch (action) {
                     case 'init':
                         this.carController.carSpeed = Math.min(parseInt(options?.carSpeed, 10), 100);
-                        this.carController.turn(parseInt(options?.degreeOfTurns ?? this.turnsDegrees, 10));
+                        this.carController.turn(parseInt(options?.degreeOfTurns, 10));
                         this.carController.setEscToNeutralPosition();
-                        this.carController.isEngineRunning = false;
                         break;
 
                     case 'stop-car':
@@ -200,11 +191,11 @@ class SocketController {
                         break;
 
                     case 'start-camera':
-                        this.mediamtxController.run();
+                        this.mediaMtxController.run();
                         break;
 
                     case 'stop-camera':
-                        this.mediamtxController.stop();
+                        this.mediaMtxController.stop();
                         break;
 
                     case 'camera-gimbal-turn-to':
@@ -226,7 +217,7 @@ class SocketController {
 
                     case 'backward':
                     case 'forward':
-                        this.carController.moveCar(action, options?.carSpeed);
+                        this.carController.move(action, options?.carSpeed);
                         break;
 
                     case 'set-esc-to-neutral-position':
@@ -246,13 +237,12 @@ class SocketController {
 
 const cameraGimbal = new CameraGimbal();
 const carController = new CarController();
-const mediamtxController = new MediamtxController();
-const socketController = new SocketController(carController, mediamtxController, cameraGimbal);
+const mediaMtxController = new MediaMtxController();
+const socketController = new SocketController(carController, mediaMtxController, cameraGimbal);
 
 process.on('SIGINT', () => {
     socketController.closeSocket();
-    carController?.stopCar();
-    mediamtxController?.stop();
-
+    carController?.stop();
+    mediaMtxController?.stop();
     terminate();
 });

@@ -5,7 +5,6 @@ project(raspberrypiclient  C)
 set(CMAKE_C_STANDARD 11)
 
 configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/.env COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/mediamtx.yml ${CMAKE_BINARY_DIR}/mediamtx.yml COPYONLY)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
