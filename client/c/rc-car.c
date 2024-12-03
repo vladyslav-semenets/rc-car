@@ -18,6 +18,11 @@ struct ResetTurnsActionPayloadData {
     const char *degreeOfTurns;
 };
 
+struct CameraGimbalSetPitchAngleActionPayloadData {
+    char *action;
+    const char *degrees;
+};
+
 struct ForwardBackwardActionPayloadData {
     const char *carSpeed;
 };
@@ -176,6 +181,30 @@ void cameraGimbalTurn(RcCar *self, const float *degrees) {
     free(axisXDegreesAsString);
 }
 
+void cameraGimbalSetPitchAngle(RcCar *self, const char *direction) {
+    int pitchAngle = self->pitchAngle;
+
+    if (strcmp(direction, "bottom") == 0) {
+        pitchAngle = pitchAngle * -1;
+    }
+
+    int len = snprintf(NULL, 0, "%d", pitchAngle);
+    char *axisXDegreesAsString = malloc(len + 1);
+    snprintf(axisXDegreesAsString, len + 1, "%d", pitchAngle);
+
+    struct CameraGimbalSetPitchAngleActionPayloadData cameraGimbalSetPitchAngleActionPayloadData;
+    cameraGimbalSetPitchAngleActionPayloadData.degrees = axisXDegreesAsString;
+
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(data, "action", "camera-gimbal-set-pitch-angle");
+    cJSON_AddStringToObject(data, "degrees", cameraGimbalSetPitchAngleActionPayloadData.degrees);
+
+    const char *payload = prepareActionPayload(data);
+
+    sendWebSocketEvent(payload, self->webSocketInstance);
+    free(axisXDegreesAsString);
+}
+
 void resetCameraGimbal(RcCar *self) {
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "reset-camera-gimbal");
@@ -211,8 +240,10 @@ RcCar *newRcCar(struct lws *webSocketInstance) {
     rcCar->webSocketInstance = webSocketInstance;
     rcCar->degreeOfTurns = 83.0f;
     rcCar->speed = 50;
+    rcCar->pitchAngle = 90;
     rcCar->turn = turnCar;
     rcCar->cameraGimbalTurn = cameraGimbalTurn;
+    rcCar->cameraGimbalSetPitchAngle = cameraGimbalSetPitchAngle;
     rcCar->resetCameraGimbal = resetCameraGimbal;
     rcCar->forward = forward;
     rcCar->backward = backward;

@@ -260,6 +260,22 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
             rcCar->init(rcCar);
         }
 
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_LEFTSHOULDER) {
+            rcCar->pitchAngle = rcCar->pitchAngle - 1;
+            if (rcCar->pitchAngle > 90) {
+                rcCar->pitchAngle = 90;
+            }
+            rcCar->cameraGimbalSetPitchAngle(rcCar, "top");
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) {
+            rcCar->pitchAngle = rcCar->pitchAngle - 1.0f;
+            if (rcCar->pitchAngle < 0) {
+                rcCar->pitchAngle = 0;
+            }
+            rcCar->cameraGimbalSetPitchAngle(rcCar, "bottom");
+        }
+
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
             rcCar->degreeOfTurns = rcCar->degreeOfTurns + 1.0f;
             if (rcCar->degreeOfTurns > 180.0f) {
