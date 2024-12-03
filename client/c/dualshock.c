@@ -19,6 +19,7 @@ struct AnalogValues {
 
 typedef struct {
     struct AnalogValues leftAnalogStickValues;
+    struct AnalogValues rightAnalogStickValues;
 } State;
 
 RcCar *rcCar = NULL;
@@ -29,7 +30,10 @@ void initializeState() {
     struct AnalogValues leftAnalogStickValues;
     leftAnalogStickValues.x = 0;
     leftAnalogStickValues.y = 0;
-    state->leftAnalogStickValues = leftAnalogStickValues;
+    struct AnalogValues rightAnalogStickValues;
+    rightAnalogStickValues.x = 0;
+    rightAnalogStickValues.y = 0;
+    state->rightAnalogStickValues = rightAnalogStickValues;
 }
 
 void cleanupState() {
@@ -68,6 +72,32 @@ bool isAnalogStickPressed(struct AnalogValues *values) {
     return abs(values->x) > DEADZONE || abs(values->y) > DEADZONE;
 }
 
+struct AnalogValues calculateRightAnalogStickValues() {
+    struct AnalogValues result;
+    result.x = 0;
+    result.y = 0;
+    const int rawAxisX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+    const int rawAxisY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+    if (rawAxisX != 0) {
+        result.x = getLinearConversion(abs(rawAxisX), DEADZONE, 32768, DEADZONE, 32768);
+
+        if (rawAxisX < 0 && result.x != 0) {
+            result.x *= -1;
+        }
+    }
+
+    if (rawAxisY != 0) {
+        result.y = getLinearConversion(abs(rawAxisY), DEADZONE, 32768, DEADZONE, 32768);
+
+        if (rawAxisY < 0 && result.y != 0) {
+            result.y *= -1;
+        }
+    }
+
+    return result;
+}
+
 struct AnalogValues calculateLeftAnalogStickValues() {
     struct AnalogValues result;
     result.x = 0;
@@ -99,10 +129,14 @@ float axisXToDegrees(const int axisX) {
 
     if (axisX < 0) {
         degrees = 180 - ((float)(axisX + 32768) / 32768.0f) * 90.0f;
-        if (degrees < 90) degrees = 90;
+        if (degrees < 90) {
+            degrees = 90;
+        }
     } else {
         degrees = 90 - ((float)(axisX) / 32768.0f) * 90.0f;
-        if (degrees < 0) degrees = 0;
+        if (degrees < 0) {
+            degrees = 0;
+        }
     }
 
     return degrees;
@@ -114,8 +148,8 @@ int buttonValueToSpeed(SDL_GameControllerAxis axis) {
     return (int)roundf((float)value / MAX_AXIS_VALUE * 100);
 }
 
-float getAxisXDegrees() {
-    const int axisX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+float getAxisXDegrees(SDL_GameControllerAxis axis) {
+    const int axisX = SDL_GameControllerGetAxis(controller, axis);
 
     return axisXToDegrees(axisX);
 }
@@ -161,10 +195,31 @@ void processJoystickEvents(SDL_Event *e, RcCar *rcCar) {
             state->leftAnalogStickValues = values;
 
             if (pressed && previouslyPressed) {
-                const float degrees = getAxisXDegrees();
+                const float degrees = getAxisXDegrees(SDL_CONTROLLER_AXIS_LEFTX);
                 rcCar->turn(rcCar, &degrees);
             } else if (!pressed && previouslyPressed) {
                 rcCar->resetTurns(rcCar);
+            }
+        }
+
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) {
+            struct AnalogValues cachedRightAnalogStickValues = state->rightAnalogStickValues;
+            struct AnalogValues values = calculateRightAnalogStickValues();
+            bool pressed = isAnalogStickPressed(&values);
+            bool previouslyPressed = isAnalogStickPressed(&cachedRightAnalogStickValues);
+
+            if (!pressed && !previouslyPressed) {
+                return;
+            }
+
+            state->rightAnalogStickValues = values;
+
+            if (pressed && previouslyPressed) {
+                const float degrees = getAxisXDegrees(SDL_CONTROLLER_AXIS_RIGHTX);
+                //rcCar->turn(rcCar, &degrees);
+                printf("gimbal %f\n", degrees);
+            } else if (!pressed && previouslyPressed) {
+                // rcCar->resetTurns(rcCar);
             }
         }
 
