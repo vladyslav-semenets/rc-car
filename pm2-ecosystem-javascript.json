@@ -2,12 +2,12 @@
   "apps" : [
     {
       "name": "raspberrypi-client-javascript",
-      "script" : "./raspberry-pi-client/javascript/index.mjs"
+      "script" : "./raspberry-pi-client/javascript/index.mjs",
+      "node_args": ["--env-file=raspberry-pi-client/javascript/.env"]
     },
     {
       "name": "websocket-server-javascript",
-      "script" : "./websocket-server/javascript/index.mjs",
-      "node_args": ["--env-file=raspberry-pi-client/javascript/.env"]
+      "script" : "./websocket-server/javascript/index.mjs"
     }
   ]
 }
