@@ -124,8 +124,6 @@ void cameraGimbalSetYaw(const float *degrees) {
     const int pulseWidth = (int)floorf(
        ((*degrees + 90) / 180.0f) * (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) + CAR_CAMERA_GIMBAL_MIN_PMW
     );
-
-    printf("pulseWidth = %d\n", pulseWidth);
     gpioServo(CAR_CAMERA_GIMBAL_PIN4, pulseWidth);
 }
 
