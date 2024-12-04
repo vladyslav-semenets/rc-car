@@ -1,9 +1,16 @@
 #include <stdlib.h>;
 #include <stdio.h>;
 #include <math.h>;
+#include <SDL2/SDL.h>
 #include <cjson/cJSON.h>;
 #include "rc-car.h";
 #include "websocket.h";
+#include "stdbool.h"
+
+#define JOYSTICK_DEADZONE 3000
+#define JOYSTICK_MAX_AXIS_VALUE 32768
+
+static SDL_GameController *controller = NULL;
 
 struct CommonActionPayload {
     char *to;
@@ -26,6 +33,159 @@ struct CameraGimbalSetPitchAngleActionPayloadData {
 struct ForwardBackwardActionPayloadData {
     const char *carSpeed;
 };
+
+struct AnalogValues {
+    int x;
+    int y;
+};
+
+typedef struct {
+    struct AnalogValues leftAnalogStickValues;
+    struct AnalogValues rightAnalogStickValues;
+} State;
+
+State *state = NULL;
+
+void initializeState() {
+    state = malloc(sizeof(State));
+    struct AnalogValues leftAnalogStickValues;
+    struct AnalogValues rightAnalogStickValues;
+    leftAnalogStickValues.x = 0;
+    leftAnalogStickValues.y = 0;
+    rightAnalogStickValues.x = 0;
+    rightAnalogStickValues.y = 0;
+    state->leftAnalogStickValues = leftAnalogStickValues;
+    state->rightAnalogStickValues = rightAnalogStickValues;
+}
+
+void cleanupState() {
+    if (state != NULL) {
+        free(state);
+        state = NULL;
+    }
+}
+
+int getLinearConversion(const int value, const int oldMin, const int oldMax, const int newMin, const int newMax) {
+    float result = ((float)(value - oldMin) / (oldMax - oldMin)) * (newMax - newMin) + newMin;
+
+    if (newMax < newMin) {
+        if (result < newMax) {
+            result = newMax;
+        } else if (result > newMin) {
+            result = newMin;
+        }
+    } else {
+        if (result > newMax) {
+            result = newMax;
+        } else if (result < newMin) {
+            result = newMin;
+        }
+    }
+
+    return (int)result;
+}
+
+bool isAnalogStickPressed(struct AnalogValues *values) {
+    return abs(values->x) > JOYSTICK_DEADZONE || abs(values->y) > JOYSTICK_DEADZONE;
+}
+
+struct AnalogValues calculateRightAnalogStickValues() {
+    struct AnalogValues result;
+    result.x = 0;
+    result.y = 0;
+    const int rawAxisX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+    const int rawAxisY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+    if (rawAxisX != 0) {
+        result.x = getLinearConversion(
+            abs(rawAxisX),
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE,
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE
+        );
+
+        if (rawAxisX < 0 && result.x != 0) {
+            result.x *= -1;
+        }
+    }
+
+    if (rawAxisY != 0) {
+        result.y = getLinearConversion(
+            abs(rawAxisY),
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE,
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE
+        );
+
+        if (rawAxisY < 0 && result.y != 0) {
+            result.y *= -1;
+        }
+    }
+
+    return result;
+}
+
+struct AnalogValues calculateLeftAnalogStickValues() {
+    struct AnalogValues result;
+    result.x = 0;
+    result.y = 0;
+    const int rawAxisX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+    const int rawAxisY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
+
+    if (rawAxisX != 0) {
+        result.x = getLinearConversion(
+            abs(rawAxisX),
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE,
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE
+        );
+
+        if (rawAxisX < 0 && result.x != 0) {
+            result.x *= -1;
+        }
+    }
+
+    if (rawAxisY != 0) {
+        result.y = getLinearConversion(
+            abs(rawAxisY),
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE,
+            JOYSTICK_DEADZONE,
+            JOYSTICK_MAX_AXIS_VALUE
+        );
+
+        if (rawAxisY < 0 && result.y != 0) {
+            result.y *= -1;
+        }
+    }
+
+    return result;
+}
+
+static float mapStickToDegrees(const int stickValue, const float degreeMin, const float degreeMax, const float step) {
+    float angle;
+
+    if (stickValue >= 0) {
+        angle = degreeMax - (float)stickValue / JOYSTICK_MAX_AXIS_VALUE * (degreeMax - degreeMin);
+        angle = roundf(angle / step) * step;
+        return fminf(fmaxf(angle, fminf(degreeMin, degreeMax)), fmaxf(degreeMin, degreeMax));
+    } else {
+        const float clampedValue = fmaxf((float)stickValue, -JOYSTICK_MAX_AXIS_VALUE);
+        angle = degreeMax + ((clampedValue + JOYSTICK_MAX_AXIS_VALUE) / JOYSTICK_MAX_AXIS_VALUE) * (degreeMin - degreeMax);
+        const float roundedAngle = roundf(angle / step) * step;
+
+        return fmaxf(degreeMin, fminf(roundedAngle, degreeMax));
+    }
+}
+
+int buttonValueToSpeed(SDL_GameControllerAxis axis) {
+    const int value = SDL_GameControllerGetAxis(controller, axis);
+
+    return (int)roundf((float)value / JOYSTICK_DEADZONE * 100);
+}
 
 char* prepareActionPayload(cJSON *data) {
     struct CommonActionPayload actionPayload;
@@ -181,16 +341,10 @@ void cameraGimbalTurn(RcCar *self, const float *degrees) {
     free(axisXDegreesAsString);
 }
 
-void cameraGimbalSetPitchAngle(RcCar *self, const char *direction) {
-    int pitchAngle = self->pitchAngle;
-
-    // if (strcmp(direction, "bottom") != 0) {
-    //     pitchAngle = pitchAngle * -1;
-    // }
-
-    int len = snprintf(NULL, 0, "%d", pitchAngle);
+void cameraGimbalSetPitchAngle(RcCar *self) {
+    int len = snprintf(NULL, 0, "%d", self->pitchAngle);
     char *axisXDegreesAsString = malloc(len + 1);
-    snprintf(axisXDegreesAsString, len + 1, "%d", pitchAngle);
+    snprintf(axisXDegreesAsString, len + 1, "%d", self->pitchAngle);
 
     struct CameraGimbalSetPitchAngleActionPayloadData cameraGimbalSetPitchAngleActionPayloadData;
     cameraGimbalSetPitchAngleActionPayloadData.degrees = axisXDegreesAsString;
@@ -234,6 +388,148 @@ void init(RcCar *self) {
     free(axisXDegreesAsString);
 }
 
+void processJoystickEvents(RcCar *self, SDL_Event *e) {
+    if (e->type == SDL_CONTROLLERAXISMOTION) {
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
+            struct AnalogValues cachedLeftAnalogStickValues = state->leftAnalogStickValues;
+            struct AnalogValues values = calculateLeftAnalogStickValues();
+            bool pressed = isAnalogStickPressed(&values);
+            bool previouslyPressed = isAnalogStickPressed(&cachedLeftAnalogStickValues);
+
+            if (!pressed && !previouslyPressed) {
+                return;
+            }
+
+            state->leftAnalogStickValues = values;
+
+            if (pressed && previouslyPressed) {
+                float degrees = 0;
+                const int axisXValue = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+                if (axisXValue > 0) {
+                    degrees = mapStickToDegrees(axisXValue, 0, self->degreeOfTurns, 0.01);
+                } else {
+                    degrees = mapStickToDegrees(axisXValue, self->degreeOfTurns, 140, 0.01);
+                }
+
+                turnCar(self, &degrees);
+            } else if (!pressed && previouslyPressed) {
+                resetTurns(self);
+            }
+        }
+
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) {
+            struct AnalogValues cachedRightAnalogStickValues = state->rightAnalogStickValues;
+            struct AnalogValues values = calculateRightAnalogStickValues();
+            bool pressed = isAnalogStickPressed(&values);
+            bool previouslyPressed = isAnalogStickPressed(&cachedRightAnalogStickValues);
+
+            if (!pressed && !previouslyPressed) {
+                return;
+            }
+
+            state->rightAnalogStickValues = values;
+
+            if (pressed && previouslyPressed) {
+                float degrees = 0;
+                const int axisXValue = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+                if (axisXValue > 0) {
+                    degrees = mapStickToDegrees(axisXValue, 90, 0, 0.01);
+                } else {
+                    degrees = mapStickToDegrees(axisXValue, 0, 90, 0.01) * -1;
+                }
+                cameraGimbalTurn(self, &degrees);
+            } else if (!pressed && previouslyPressed) {
+                resetCameraGimbal(self);
+            }
+        }
+
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) {
+            const int value = e->caxis.value;
+
+            if (value > 1000) {
+                const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+                forward(self, &speed);
+            }
+        }
+
+        if (e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT) {
+            const int value = e->caxis.value;
+
+            if (value > 1000) {
+                const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+                backward(self, &speed);
+            }
+        }
+
+        if (
+            e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT
+            || e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT
+        ) {
+            const int value = e->caxis.value;
+
+            if (value < 1000) {
+                setEscToNeutralPosition(self);
+            }
+        }
+    } else if (e->type == SDL_CONTROLLERBUTTONDOWN) {
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
+            init(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_LEFTSHOULDER) {
+            self->pitchAngle = self->pitchAngle - 1;
+            if (self->pitchAngle < -90) {
+                self->pitchAngle = -90;
+            }
+            cameraGimbalSetPitchAngle(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) {
+            if (self->pitchAngle < 0) {
+                self->pitchAngle = (abs(self->pitchAngle) - 1) * -1;
+            } else {
+                self->pitchAngle = self->pitchAngle + 1;
+            }
+            if (self->pitchAngle > 90) {
+                self->pitchAngle = 90;
+            }
+            cameraGimbalSetPitchAngle(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT) {
+            self->degreeOfTurns = self->degreeOfTurns + 1.0f;
+            if (self->degreeOfTurns > 180.0f) {
+                self->degreeOfTurns = 180.0f;
+            }
+            changDegreeOfTurns(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
+            self->degreeOfTurns = self->degreeOfTurns - 1.0f;
+            if (self->degreeOfTurns < 0) {
+                self->degreeOfTurns = 0;
+            }
+            changDegreeOfTurns(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+            stopCamera(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
+            startCamera(self);
+        }
+    }
+}
+
+void setControllerInstance(SDL_GameController *controllerInstance) {
+    initializeState();
+    controller = controllerInstance;
+}
+
+void onCloseJoystick() {
+    cleanupState();
+}
 
 RcCar *newRcCar(struct lws *webSocketInstance) {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
@@ -245,13 +541,16 @@ RcCar *newRcCar(struct lws *webSocketInstance) {
     rcCar->cameraGimbalTurn = cameraGimbalTurn;
     rcCar->cameraGimbalSetPitchAngle = cameraGimbalSetPitchAngle;
     rcCar->resetCameraGimbal = resetCameraGimbal;
+    rcCar->setControllerInstance = setControllerInstance;
     rcCar->forward = forward;
     rcCar->backward = backward;
+    rcCar->processJoystickEvents = processJoystickEvents;
     rcCar->setEscToNeutralPosition = setEscToNeutralPosition;
     rcCar->changDegreeOfTurns = changDegreeOfTurns;
     rcCar->startCamera = startCamera;
     rcCar->stopCamera = stopCamera;
     rcCar->resetTurns = resetTurns;
     rcCar->init = init;
+    rcCar->onCloseJoystick = onCloseJoystick;
     return rcCar;
 }

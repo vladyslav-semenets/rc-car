@@ -14,7 +14,7 @@ include_directories(/opt/homebrew/include /usr/include client/c/libs/env)
 link_directories(/opt/homebrew/lib /usr/lib client/c/libs/env)
 
 # Add the executable
-add_executable(rccarclient main.c dualshock.h dualshock.c websocket.h websocket.c rc-car.h rc-car.c libs/env/dotenv.c libs/env/dotenv.h)
+add_executable(rccarclient main.c joystick.h joystick.c websocket.h websocket.c rc-car.h rc-car.c libs/env/dotenv.c libs/env/dotenv.h)
 
 # Link the libwebsockets library
 target_link_libraries(rccarclient websockets ssl crypto SDL2 cjson)

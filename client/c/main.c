@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include "libs/env/dotenv.h"
-#include "dualshock.h"
+#include "joystick.h"
 #include "websocket.h"
 
 int isRunning = 1;

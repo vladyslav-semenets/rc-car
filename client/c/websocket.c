@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
-#include "dualshock.h"
+#include "joystick.h"
 #include "websocket.h"
 
 #define MAX_PAYLOAD_SIZE 1024
