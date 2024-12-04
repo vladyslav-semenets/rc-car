@@ -10,11 +10,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g")
 set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
 
-include_directories(/opt/homebrew/include /usr/include client/c/libs/env)
-link_directories(/opt/homebrew/lib /usr/lib client/c/libs/env)
+include_directories(/opt/homebrew/include /usr/include client/c/libs/env client/c/utils)
+link_directories(/opt/homebrew/lib /usr/lib client/c/libs/env client/c/utils)
 
 # Add the executable
-add_executable(rccarclient main.c joystick.h joystick.c websocket.h websocket.c rc-car.h rc-car.c libs/env/dotenv.c libs/env/dotenv.h)
+add_executable(rccarclient main.c joystick.h joystick.c websocket.h websocket.c rc-car.h rc-car.c libs/env/dotenv.c libs/env/dotenv.h utils/joystick.util.h utils/joystick.util.c)
 
 # Link the libwebsockets library
 target_link_libraries(rccarclient websockets ssl crypto SDL2 cjson)

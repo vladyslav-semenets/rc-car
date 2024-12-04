@@ -6,186 +6,30 @@
 #include "rc-car.h"
 #include "websocket.h"
 #include "stdbool.h"
-
-#define JOYSTICK_DEADZONE 3000
-#define JOYSTICK_MAX_AXIS_VALUE 32768
+#include "utils/joystick.util.h"
 
 static SDL_GameController *controller = NULL;
 struct lws *webSocketInstance = NULL;
 
-struct CommonActionPayload {
-    char *to;
-};
+JoystickState *joystickState = NULL;
 
-struct TurnToActionPayloadData {
-    const char *degrees;
-};
-
-struct ResetTurnsActionPayloadData {
-    char *action;
-    const char *degreeOfTurns;
-};
-
-struct CameraGimbalSetPitchAngleActionPayloadData {
-    char *action;
-    const char *degrees;
-};
-
-struct ForwardBackwardActionPayloadData {
-    const char *carSpeed;
-};
-
-struct AnalogValues {
-    int x;
-    int y;
-};
-
-typedef struct {
-    struct AnalogValues leftAnalogStickValues;
-    struct AnalogValues rightAnalogStickValues;
-} State;
-
-State *state = NULL;
-
-void initializeState() {
-    state = malloc(sizeof(State));
+void initializeJoystickState() {
+    joystickState = malloc(sizeof(JoystickState));
     struct AnalogValues leftAnalogStickValues;
     struct AnalogValues rightAnalogStickValues;
     leftAnalogStickValues.x = 0;
     leftAnalogStickValues.y = 0;
     rightAnalogStickValues.x = 0;
     rightAnalogStickValues.y = 0;
-    state->leftAnalogStickValues = leftAnalogStickValues;
-    state->rightAnalogStickValues = rightAnalogStickValues;
+    joystickState->leftAnalogStickValues = leftAnalogStickValues;
+    joystickState->rightAnalogStickValues = rightAnalogStickValues;
 }
 
-void cleanupState() {
-    if (state != NULL) {
-        free(state);
-        state = NULL;
+void cleanupJoystickState() {
+    if (joystickState != NULL) {
+        free(joystickState);
+        joystickState = NULL;
     }
-}
-
-int getLinearConversion(const int value, const int oldMin, const int oldMax, const int newMin, const int newMax) {
-    float result = ((float)(value - oldMin) / (oldMax - oldMin)) * (newMax - newMin) + newMin;
-
-    if (newMax < newMin) {
-        if (result < newMax) {
-            result = newMax;
-        } else if (result > newMin) {
-            result = newMin;
-        }
-    } else {
-        if (result > newMax) {
-            result = newMax;
-        } else if (result < newMin) {
-            result = newMin;
-        }
-    }
-
-    return (int)result;
-}
-
-bool isAnalogStickPressed(struct AnalogValues *values) {
-    return abs(values->x) > JOYSTICK_DEADZONE || abs(values->y) > JOYSTICK_DEADZONE;
-}
-
-struct AnalogValues calculateRightAnalogStickValues() {
-    struct AnalogValues result;
-    result.x = 0;
-    result.y = 0;
-    const int rawAxisX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-    const int rawAxisY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-
-    if (rawAxisX != 0) {
-        result.x = getLinearConversion(
-            abs(rawAxisX),
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE,
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE
-        );
-
-        if (rawAxisX < 0 && result.x != 0) {
-            result.x *= -1;
-        }
-    }
-
-    if (rawAxisY != 0) {
-        result.y = getLinearConversion(
-            abs(rawAxisY),
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE,
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE
-        );
-
-        if (rawAxisY < 0 && result.y != 0) {
-            result.y *= -1;
-        }
-    }
-
-    return result;
-}
-
-struct AnalogValues calculateLeftAnalogStickValues() {
-    struct AnalogValues result;
-    result.x = 0;
-    result.y = 0;
-    const int rawAxisX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-    const int rawAxisY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-
-    if (rawAxisX != 0) {
-        result.x = getLinearConversion(
-            abs(rawAxisX),
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE,
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE
-        );
-
-        if (rawAxisX < 0 && result.x != 0) {
-            result.x *= -1;
-        }
-    }
-
-    if (rawAxisY != 0) {
-        result.y = getLinearConversion(
-            abs(rawAxisY),
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE,
-            JOYSTICK_DEADZONE,
-            JOYSTICK_MAX_AXIS_VALUE
-        );
-
-        if (rawAxisY < 0 && result.y != 0) {
-            result.y *= -1;
-        }
-    }
-
-    return result;
-}
-
-static float mapStickToDegrees(const int stickValue, const float degreeMin, const float degreeMax, const float step) {
-    float angle;
-
-    if (stickValue >= 0) {
-        angle = degreeMax - (float)stickValue / JOYSTICK_MAX_AXIS_VALUE * (degreeMax - degreeMin);
-        angle = roundf(angle / step) * step;
-        return fminf(fmaxf(angle, fminf(degreeMin, degreeMax)), fmaxf(degreeMin, degreeMax));
-    } else {
-        const float clampedValue = fmaxf((float)stickValue, -JOYSTICK_MAX_AXIS_VALUE);
-        angle = degreeMax + ((clampedValue + JOYSTICK_MAX_AXIS_VALUE) / JOYSTICK_MAX_AXIS_VALUE) * (degreeMin - degreeMax);
-        const float roundedAngle = roundf(angle / step) * step;
-
-        return fmaxf(degreeMin, fminf(roundedAngle, degreeMax));
-    }
-}
-
-int buttonValueToSpeed(SDL_GameControllerAxis axis) {
-    const int value = SDL_GameControllerGetAxis(controller, axis);
-
-    return (int)roundf((float)value / JOYSTICK_MAX_AXIS_VALUE * 100);
 }
 
 char* prepareActionPayload(cJSON *data) {
@@ -392,8 +236,8 @@ void init(RcCar *self) {
 void processJoystickEvents(RcCar *self, SDL_Event *e) {
     if (e->type == SDL_CONTROLLERAXISMOTION) {
         if (e->caxis.axis == SDL_CONTROLLER_AXIS_LEFTX) {
-            struct AnalogValues cachedLeftAnalogStickValues = state->leftAnalogStickValues;
-            struct AnalogValues values = calculateLeftAnalogStickValues();
+            struct AnalogValues cachedLeftAnalogStickValues = joystickState->leftAnalogStickValues;
+            struct AnalogValues values = calculateLeftAnalogStickValues(controller);
             bool pressed = isAnalogStickPressed(&values);
             bool previouslyPressed = isAnalogStickPressed(&cachedLeftAnalogStickValues);
 
@@ -401,7 +245,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
                 return;
             }
 
-            state->leftAnalogStickValues = values;
+            joystickState->leftAnalogStickValues = values;
 
             if (pressed && previouslyPressed) {
                 float degrees = 0;
@@ -419,8 +263,8 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
         }
 
         if (e->caxis.axis == SDL_CONTROLLER_AXIS_RIGHTX) {
-            struct AnalogValues cachedRightAnalogStickValues = state->rightAnalogStickValues;
-            struct AnalogValues values = calculateRightAnalogStickValues();
+            struct AnalogValues cachedRightAnalogStickValues = joystickState->rightAnalogStickValues;
+            struct AnalogValues values = calculateRightAnalogStickValues(controller);
             bool pressed = isAnalogStickPressed(&values);
             bool previouslyPressed = isAnalogStickPressed(&cachedRightAnalogStickValues);
 
@@ -428,7 +272,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
                 return;
             }
 
-            state->rightAnalogStickValues = values;
+            joystickState->rightAnalogStickValues = values;
 
             if (pressed && previouslyPressed) {
                 float degrees = 0;
@@ -448,7 +292,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
             const int value = e->caxis.value;
 
             if (value > 1000) {
-                const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+                const int speed = buttonValueToSpeed(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
                 forward(&speed);
             }
         }
@@ -457,7 +301,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
             const int value = e->caxis.value;
 
             if (value > 1000) {
-                const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+                const int speed = buttonValueToSpeed(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
                 backward(&speed);
             }
         }
@@ -524,7 +368,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
 }
 
 void setControllerInstance(SDL_GameController *controllerInstance) {
-    initializeState();
+    initializeJoystickState();
     controller = controllerInstance;
 }
 
@@ -533,7 +377,7 @@ void setWebSocketInstance(struct lws *instance) {
 }
 
 void onCloseJoystick() {
-    cleanupState();
+    cleanupJoystickState();
 }
 
 RcCar *newRcCar() {

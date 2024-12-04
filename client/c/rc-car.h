@@ -2,6 +2,42 @@
 #define RC_CAR_H
 #include <SDL2/SDL.h>
 #include <libwebsockets.h>
+
+#define JOYSTICK_DEADZONE 3000
+#define JOYSTICK_MAX_AXIS_VALUE 32768
+
+struct CommonActionPayload {
+    char *to;
+};
+
+struct TurnToActionPayloadData {
+    const char *degrees;
+};
+
+struct ResetTurnsActionPayloadData {
+    char *action;
+    const char *degreeOfTurns;
+};
+
+struct CameraGimbalSetPitchAngleActionPayloadData {
+    char *action;
+    const char *degrees;
+};
+
+struct ForwardBackwardActionPayloadData {
+    const char *carSpeed;
+};
+
+struct AnalogValues {
+    int x;
+    int y;
+};
+
+typedef struct {
+    struct AnalogValues leftAnalogStickValues;
+    struct AnalogValues rightAnalogStickValues;
+} JoystickState;
+
 typedef struct RcCar {
     float degreeOfTurns;
     int pitchAngle;
