@@ -1,13 +1,12 @@
 #ifndef RC_CAR_H
 #define RC_CAR_H
 #include <SDL2/SDL.h>
+#include <libwebsockets.h>
 typedef struct RcCar {
-    struct lws *webSocketInstance;
     float degreeOfTurns;
     int pitchAngle;
     int speed;
     void (*init)(struct RcCar *self);
-    void (*turn)(struct RcCar *self, const float *degrees);
     void (*resetCameraGimbal)(struct RcCar *self);
     void (*cameraGimbalTurn)(struct RcCar *self, const float *degrees);
     void (*cameraGimbalSetPitchAngle)(struct RcCar *self);
@@ -20,7 +19,8 @@ typedef struct RcCar {
     void (*resetTurns)(struct RcCar *self);
     void (*processJoystickEvents)(struct RcCar *self, SDL_Event *e);
     void (*setControllerInstance)(SDL_GameController *controllerInstance);
+    void (*setWebSocketInstance)(struct lws *webSocketInstance);
     void (*onCloseJoystick)();
 } RcCar;
-RcCar *newRcCar(struct lws *webSocketInstance);
+RcCar *newRcCar();
 #endif

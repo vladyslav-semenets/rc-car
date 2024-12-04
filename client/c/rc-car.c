@@ -1,16 +1,17 @@
-#include <stdlib.h>;
-#include <stdio.h>;
-#include <math.h>;
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
 #include <SDL2/SDL.h>
-#include <cjson/cJSON.h>;
-#include "rc-car.h";
-#include "websocket.h";
+#include <cjson/cJSON.h>
+#include "rc-car.h"
+#include "websocket.h"
 #include "stdbool.h"
 
 #define JOYSTICK_DEADZONE 3000
 #define JOYSTICK_MAX_AXIS_VALUE 32768
 
 static SDL_GameController *controller = NULL;
+struct lws *webSocketInstance = NULL;
 
 struct CommonActionPayload {
     char *to;
@@ -184,7 +185,7 @@ static float mapStickToDegrees(const int stickValue, const float degreeMin, cons
 int buttonValueToSpeed(SDL_GameControllerAxis axis) {
     const int value = SDL_GameControllerGetAxis(controller, axis);
 
-    return (int)roundf((float)value / JOYSTICK_DEADZONE * 100);
+    return (int)roundf((float)value / JOYSTICK_MAX_AXIS_VALUE * 100);
 }
 
 char* prepareActionPayload(cJSON *data) {
@@ -216,7 +217,7 @@ void changDegreeOfTurns(RcCar *self) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(axisXDegreesAsString);
 }
 
@@ -234,11 +235,11 @@ void resetTurns(RcCar *self) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(axisXDegreesAsString);
 }
 
-void turnCar(RcCar *self, const float *degrees) {
+void turnCar(const float *degrees) {
     float degreesValue = *degrees;
     int len = snprintf(NULL, 0, "%f", degreesValue);
     char *axisXDegreesAsString = malloc(len + 1);
@@ -253,11 +254,11 @@ void turnCar(RcCar *self, const float *degrees) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(axisXDegreesAsString);
 }
 
-void forward(RcCar *self, const int *speed) {
+void forward(const int *speed) {
     int speedValue = *speed;
     int len = snprintf(NULL, 0, "%d", speedValue);
     char *speedAsString = malloc(len + 1);
@@ -272,11 +273,11 @@ void forward(RcCar *self, const int *speed) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(speedAsString);
 }
 
-void backward(RcCar *self, const int *speed) {
+void backward(const int *speed) {
     int speedValue = *speed;
     int len = snprintf(NULL, 0, "%d", speedValue);
     char *speedAsString = malloc(len + 1);
@@ -291,38 +292,38 @@ void backward(RcCar *self, const int *speed) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(speedAsString);
 }
 
-void setEscToNeutralPosition(RcCar *self) {
+void setEscToNeutralPosition() {
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "set-esc-to-neutral-position");
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
 }
 
-void startCamera(RcCar *self) {
+void startCamera() {
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "start-camera");
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
 }
 
-void stopCamera(RcCar *self) {
+void stopCamera() {
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "stop-camera");
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
 }
 
-void cameraGimbalTurn(RcCar *self, const float *degrees) {
+void cameraGimbalTurn(const float *degrees) {
     float degreesValue = *degrees;
     int len = snprintf(NULL, 0, "%f", degreesValue);
     char *axisXDegreesAsString = malloc(len + 1);
@@ -337,7 +338,7 @@ void cameraGimbalTurn(RcCar *self, const float *degrees) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(axisXDegreesAsString);
 }
 
@@ -355,17 +356,17 @@ void cameraGimbalSetPitchAngle(RcCar *self) {
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(axisXDegreesAsString);
 }
 
-void resetCameraGimbal(RcCar *self) {
+void resetCameraGimbal() {
     cJSON *data = cJSON_CreateObject();
     cJSON_AddStringToObject(data, "action", "reset-camera-gimbal");
 
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
 }
 
 void init(RcCar *self) {
@@ -383,7 +384,7 @@ void init(RcCar *self) {
     cJSON_AddStringToObject(data, "degrees", axisXDegreesAsString);
     const char *payload = prepareActionPayload(data);
 
-    sendWebSocketEvent(payload, self->webSocketInstance);
+    sendWebSocketEvent(payload, webSocketInstance);
     free(speedAsString);
     free(axisXDegreesAsString);
 }
@@ -411,7 +412,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
                     degrees = mapStickToDegrees(axisXValue, self->degreeOfTurns, 140, 0.01);
                 }
 
-                turnCar(self, &degrees);
+                turnCar(&degrees);
             } else if (!pressed && previouslyPressed) {
                 resetTurns(self);
             }
@@ -437,9 +438,9 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
                 } else {
                     degrees = mapStickToDegrees(axisXValue, 0, 90, 0.01) * -1;
                 }
-                cameraGimbalTurn(self, &degrees);
+                cameraGimbalTurn(&degrees);
             } else if (!pressed && previouslyPressed) {
-                resetCameraGimbal(self);
+                resetCameraGimbal();
             }
         }
 
@@ -448,7 +449,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
 
             if (value > 1000) {
                 const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
-                forward(self, &speed);
+                forward(&speed);
             }
         }
 
@@ -457,7 +458,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
 
             if (value > 1000) {
                 const int speed = buttonValueToSpeed(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
-                backward(self, &speed);
+                backward(&speed);
             }
         }
 
@@ -468,7 +469,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
             const int value = e->caxis.value;
 
             if (value < 1000) {
-                setEscToNeutralPosition(self);
+                setEscToNeutralPosition();
             }
         }
     } else if (e->type == SDL_CONTROLLERBUTTONDOWN) {
@@ -513,11 +514,11 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
         }
 
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_A) {
-            stopCamera(self);
+            stopCamera();
         }
 
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
-            startCamera(self);
+            startCamera();
         }
     }
 }
@@ -527,30 +528,22 @@ void setControllerInstance(SDL_GameController *controllerInstance) {
     controller = controllerInstance;
 }
 
+void setWebSocketInstance(struct lws *instance) {
+    webSocketInstance = instance;
+}
+
 void onCloseJoystick() {
     cleanupState();
 }
 
-RcCar *newRcCar(struct lws *webSocketInstance) {
+RcCar *newRcCar() {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
-    rcCar->webSocketInstance = webSocketInstance;
     rcCar->degreeOfTurns = 83.0f;
     rcCar->speed = 50;
     rcCar->pitchAngle = 0;
-    rcCar->turn = turnCar;
-    rcCar->cameraGimbalTurn = cameraGimbalTurn;
-    rcCar->cameraGimbalSetPitchAngle = cameraGimbalSetPitchAngle;
-    rcCar->resetCameraGimbal = resetCameraGimbal;
+    rcCar->setWebSocketInstance = setWebSocketInstance;
     rcCar->setControllerInstance = setControllerInstance;
-    rcCar->forward = forward;
-    rcCar->backward = backward;
     rcCar->processJoystickEvents = processJoystickEvents;
-    rcCar->setEscToNeutralPosition = setEscToNeutralPosition;
-    rcCar->changDegreeOfTurns = changDegreeOfTurns;
-    rcCar->startCamera = startCamera;
-    rcCar->stopCamera = stopCamera;
-    rcCar->resetTurns = resetTurns;
-    rcCar->init = init;
     rcCar->onCloseJoystick = onCloseJoystick;
     return rcCar;
 }

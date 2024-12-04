@@ -17,7 +17,7 @@
 #define KBRN "\033[0;33m"
 #define RESET "\033[0m"
 
-struct lws *webSocketInstance = NULL;
+struct lws *innstance = NULL;
 struct lws_context *lwsContext = NULL;
 
 static int callbackWebsocket(
@@ -30,7 +30,7 @@ static int callbackWebsocket(
     switch (reason) {
         case LWS_CALLBACK_CLIENT_ESTABLISHED: {
             printf("WebSocket connection established.\n");
-            webSocketInstance = wsi;
+            innstance = wsi;
         }
         break;
 
@@ -41,7 +41,7 @@ static int callbackWebsocket(
 
         case LWS_CALLBACK_CLIENT_CLOSED: {
             printf("WebSocket connection closed.\n");
-            webSocketInstance = NULL;
+            innstance = NULL;
         }
         break;
 

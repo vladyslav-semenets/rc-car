@@ -1,6 +1,6 @@
 #include <libwebsockets.h>
 #include <SDL2/SDL.h>
-#include "rc-car.h";
+#include "rc-car.h"
 #include "joystick.h"
 
 static SDL_Joystick *joystick = NULL;
@@ -37,8 +37,9 @@ int initJoystick() {
 void startJoystickLoop(int *isRunning, struct lws *webSocketInstance) {
     SDL_Event e;
 
-    rcCar = newRcCar(webSocketInstance);
+    rcCar = newRcCar();
 
+    rcCar->setWebSocketInstance(webSocketInstance);
     rcCar->setControllerInstance(controller);
 
     while (*isRunning) {
