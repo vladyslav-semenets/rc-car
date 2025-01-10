@@ -57,7 +57,7 @@ int readGyroData(int handle, int16_t *gyro_x) {
     char buf[2];
 
     // Read gyro X-axis high and low bytes
-    if (i2cReadI2CBlockData(handle, MPU6050_GYRO_XOUT_H, buf, 2) < 0) {
+    if (i2cReadI2CBlockData(handle, GYRO_XOUT_H, buf, 2) < 0) {
         fprintf(stderr, "Failed to read gyro data\n");
         return -1;
     }
