@@ -35,13 +35,21 @@ int initMPU6050() {
 
 // Function to read gyro data (X-axis angular velocity)
 float readGyroX(int handle) {
+    // Read high and low bytes
     int16_t high = i2cReadByteData(handle, GYRO_XOUT_H);
     int16_t low = i2cReadByteData(handle, GYRO_XOUT_H + 1);
+
+    // Check for I2C errors
+    if (high < 0 || low < 0) {
+        fprintf(stderr, "Error reading gyro X data\n");
+        return 0.0; // Default to 0 on error
+    }
+
+    // Combine high and low bytes
     int16_t value = (high << 8) | low;
 
     // Convert to degrees/second
-    if (value > 32768) value -= 65536;
-    return value / 131.0;
+    return value / 131.0; // Scale for ±250 °/s
 }
 
 void handleSignal(const int signal) {
