@@ -206,7 +206,7 @@ int main() {
     while (isRunning) {
         lws_service(webSocketConnection.context, 100);
 
-        correctSteering(mpuHandle);
+//        correctSteering(mpuHandle);
 
         if (!isRunning) {
             break;
