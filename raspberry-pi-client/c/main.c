@@ -52,6 +52,58 @@ float readGyroX(int handle) {
     return value / 131.0; // Scale for ±250 °/s
 }
 
+#define ACCEL_XOUT_H 0x3B
+#define GYRO_XOUT_H  0x43
+#define ACCEL_SCALE 16384.0 // +/- 2g
+#define GYRO_SCALE  131.0   // +/- 250 degrees/sec
+
+typedef struct {
+    float accel_offset_x;
+    float accel_offset_y;
+    float accel_offset_z;
+    float gyro_offset_x;
+    float gyro_offset_y;
+    float gyro_offset_z;
+} MPU6050_Calibration;
+
+// Read raw data
+int readRawData(int handle, int16_t *data, int start_register, int length) {
+    char buf[length * 2];
+    if (i2cReadI2CBlockData(handle, start_register, buf, length * 2) < 0) {
+        fprintf(stderr, "Failed to read data\n");
+        return -1;
+    }
+    for (int i = 0; i < length; i++) {
+        data[i] = (buf[i * 2] << 8) | buf[i * 2 + 1];
+    }
+    return 0;
+}
+
+// Calibration function
+void calibrateMPU6050(int handle, MPU6050_Calibration *calib, int samples) {
+    int16_t accel_raw[3], gyro_raw[3];
+    float accel_sum[3] = {0}, gyro_sum[3] = {0};
+
+    for (int i = 0; i < samples; i++) {
+        if (readRawData(handle, accel_raw, ACCEL_XOUT_H, 3) == 0 &&
+            readRawData(handle, gyro_raw, GYRO_XOUT_H, 3) == 0) {
+            for (int j = 0; j < 3; j++) {
+                accel_sum[j] += accel_raw[j];
+                gyro_sum[j] += gyro_raw[j];
+            }
+            }
+        gpioDelay(1000); // 1 ms delay
+    }
+
+    // Calculate offsets
+    calib->accel_offset_x = accel_sum[0] / samples;
+    calib->accel_offset_y = accel_sum[1] / samples;
+    calib->accel_offset_z = (accel_sum[2] / samples) - ACCEL_SCALE; // Account for gravity
+    calib->gyro_offset_x = gyro_sum[0] / samples;
+    calib->gyro_offset_y = gyro_sum[1] / samples;
+    calib->gyro_offset_z = gyro_sum[2] / samples;
+}
+
 void handleSignal(const int signal) {
     switch (signal) {
         case SIGINT:
@@ -96,6 +148,16 @@ int main() {
 
     // Initialize MPU6050
     int mpuHandle = initMPU6050();
+
+    MPU6050_Calibration calib = {0};
+    printf("Calibrating MPU6050... Please keep the sensor stationary.\n");
+    calibrateMPU6050(i2c_handle, &calib, 1000);
+
+    printf("Calibration complete!\n");
+    printf("Accel Offsets - X: %.2f, Y: %.2f, Z: %.2f\n",
+           calib.accel_offset_x, calib.accel_offset_y, calib.accel_offset_z);
+    printf("Gyro Offsets - X: %.2f, Y: %.2f, Z: %.2f\n",
+           calib.gyro_offset_x, calib.gyro_offset_y, calib.gyro_offset_z);
 
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
