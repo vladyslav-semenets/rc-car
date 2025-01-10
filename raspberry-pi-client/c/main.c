@@ -151,7 +151,7 @@ int main() {
 
     MPU6050_Calibration calib = {0};
     printf("Calibrating MPU6050... Please keep the sensor stationary.\n");
-    calibrateMPU6050(i2c_handle, &calib, 1000);
+    calibrateMPU6050(mpuHandle, &calib, 1000);
 
     printf("Calibration complete!\n");
     printf("Accel Offsets - X: %.2f, Y: %.2f, Z: %.2f\n",
