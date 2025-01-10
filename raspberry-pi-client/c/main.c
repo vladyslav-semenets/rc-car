@@ -104,7 +104,7 @@ int main() {
 
         printf("Gyro X: %f\n", gyroRate);
 
-        sleep(5);
+        sleep(1);
         if (!isRunning) {
             break;
         }
