@@ -16,6 +16,7 @@
 #define KP 1.5
 #define KI 0.1
 #define KD 0.05
+#define CAR_STEERING_RANGE (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM)
 
 int isRunning = 1;
 
@@ -50,6 +51,49 @@ float readGyroX(int handle) {
 
     // Convert to degrees/second
     return value / 131.0; // Scale for ±250 °/s
+}
+
+int readGyroData(int handle, int16_t *gyro_x) {
+    char buf[2];
+
+    // Read gyro X-axis high and low bytes
+    if (i2cReadI2CBlockData(handle, MPU6050_GYRO_XOUT_H, buf, 2) < 0) {
+        fprintf(stderr, "Failed to read gyro data\n");
+        return -1;
+    }
+
+    *gyro_x = (buf[0] << 8) | buf[1];
+    return 0;
+}
+
+void correctSteering(int handle) {
+    int16_t gyro_x = 0;
+
+    // Read gyro X-axis data
+    if (readGyroData(handle, &gyro_x) < 0) {
+        fprintf(stderr, "Failed to read gyro data\n");
+        return;
+    }
+
+    // Calculate the midpoint of the PWM range
+    int pwm_midpoint = CAR_TURNS_MIN_PWM + (CAR_STEERING_RANGE / 2);
+
+    // Scale gyro_x to an appropriate range for steering adjustment
+    // Adjust the scaling factor (e.g., 500.0) based on calibration
+    int steering_pwm = pwm_midpoint + (int)(gyro_x / 500.0);
+
+    // Clamp the PWM value to valid steering range
+    if (steering_pwm > CAR_TURNS_MAX_PWM) {
+        steering_pwm = CAR_TURNS_MAX_PWM;
+    } else if (steering_pwm < CAR_TURNS_MIN_PWM) {
+        steering_pwm = CAR_TURNS_MIN_PWM;
+    }
+
+    // Output the PWM value for debugging
+    printf("steering_pwm = %d\n", steering_pwm);
+
+    // Send the PWM signal to the steering servo
+    gpioServo(CAR_TURNS_SERVO_PIN, steering_pwm);
 }
 
 #define ACCEL_XOUT_H 0x3B
@@ -162,9 +206,8 @@ int main() {
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
 
-        float gyroRate = readGyroX(mpuHandle);
-
-        printf("Gyro X: %f\n", gyroRate);
+        correctSteering(mpuHandle);
+        sleep(1);
 
         sleep(1);
         if (!isRunning) {
