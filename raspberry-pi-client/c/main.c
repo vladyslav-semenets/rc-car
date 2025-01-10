@@ -204,12 +204,10 @@ int main() {
            calib.gyro_offset_x, calib.gyro_offset_y, calib.gyro_offset_z);
 
     while (isRunning) {
-//        lws_service(webSocketConnection.context, 100);
+        lws_service(webSocketConnection.context, 100);
 
         correctSteering(mpuHandle);
-        sleep(1);
 
-        sleep(1);
         if (!isRunning) {
             break;
         }
