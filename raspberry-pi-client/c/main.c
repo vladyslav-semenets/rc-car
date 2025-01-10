@@ -90,7 +90,7 @@ int main() {
     int mpuHandle = initMPU6050();
 
     while (isRunning) {
-        lws_service(webSocketConnection.context, 100);
+//        lws_service(webSocketConnection.context, 100);
 
         float gyroRate = readGyroX(mpuHandle);
 
