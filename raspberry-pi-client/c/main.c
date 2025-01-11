@@ -100,20 +100,37 @@ void handleSignal(int signal) {
 }
 
 int main() {
-    // Инициализация pigpio
     if (gpioInitialise() < 0) {
-        fprintf(stderr, "Failed to initialize pigpio\n");
+        fprintf(stderr, "pigpio initialization failed\n");
         return 1;
     }
+
+    gpioSetMode(CAR_TURNS_SERVO_PIN, PI_OUTPUT);
+    gpioSetMode(CAR_ESC_PIN, PI_OUTPUT);
+    gpioSetMode(CAR_CAMERA_GIMBAL_PIN1, PI_OUTPUT);
+    gpioSetMode(CAR_CAMERA_GIMBAL_PIN3, PI_OUTPUT);
+    gpioSetMode(CAR_CAMERA_GIMBAL_PIN4, PI_OUTPUT);
+
+    rcCar = newRcCar();
+    env_load(".env", false);
 
     // Установка пина для серво
     gpioSetMode(CAR_TURNS_SERVO_PIN, PI_OUTPUT);
 
-    // Настройка обработки сигналов
-    signal(SIGINT, handleSignal);
-    signal(SIGTERM, handleSignal);
+    struct sigaction sa;
+    WebSocketConnection webSocketConnection = connectToWebSocketServer();
 
-    // Открываем соединение с MPU6050
+    sa.sa_handler = handleSignal;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGTSTP, &sa, NULL);
+
+    setWebSocketEventCallback(rcCar->processWebSocketEvents);
+
+    // Open I2C connection to MPU6050
     int handle = i2cOpen(1, MPU6050_ADDRESS, 0);
     if (handle < 0) {
         fprintf(stderr, "Failed to open I2C connection\n");
