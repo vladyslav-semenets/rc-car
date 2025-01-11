@@ -15,6 +15,7 @@
 #define MIN_SERVO_PULSE_WIDTH 500   // Minimum pulse width (0.5 ms)
 #define MAX_SERVO_PULSE_WIDTH 2500  // Maximum pulse width (2.5 ms)
 #define SERVO_CENTER 83             // Neutral steering position in degrees
+#define SERVO_NEUTRAL_ANGLE 83  // Neutral steering angle (degrees)
 
 // Sensitivity of the gyroscope
 #define GYRO_SENSITIVITY 131.0  // Unit: degrees/sec
@@ -43,9 +44,12 @@ short readWord(int handle, int reg) {
 void setServoAngle(int gpioPin, float angle) {
     int pulseWidth;
 
-    // Map angle to pulse width (500-2500 µs)
+    // Adjust the angle around the neutral position
+    float adjustedAngle = SERVO_NEUTRAL_ANGLE + angle;
+
+    // Map adjusted angle to pulse width (500-2500 µs)
     pulseWidth = MIN_SERVO_PULSE_WIDTH +
-                 ((angle + SERVO_CENTER) / (2 * MAX_CORRECTION_ANGLE)) *
+                 ((adjustedAngle - SERVO_NEUTRAL_ANGLE) / MAX_CORRECTION_ANGLE) *
                  (MAX_SERVO_PULSE_WIDTH - MIN_SERVO_PULSE_WIDTH);
 
     // Clamp pulse width to valid range
@@ -54,6 +58,8 @@ void setServoAngle(int gpioPin, float angle) {
 
     // Set the servo position
     gpioServo(gpioPin, pulseWidth);
+
+    printf("Angle: %.2f, Adjusted Angle: %.2f, Pulse Width: %d\n", angle, adjustedAngle, pulseWidth);
 }
 
 void handleSignal(const int signal) {
@@ -110,24 +116,34 @@ int main() {
     // Initialize MPU6050
     initMPU6050(handle);
 
+    // Calibration offset for gyroscope bias
+    float gyroZOffset = 0.0;
+
+    // Gyroscope calibration
+    for (int i = 0; i < 100; i++) {
+        short gyroZ = readWord(handle, GYRO_ZOUT_H);
+        gyroZOffset += gyroZ / GYRO_SENSITIVITY;
+        usleep(10000);  // 10 ms delay
+    }
+    gyroZOffset /= 100.0;  // Average offset
+    printf("Gyro Z Offset: %.2f\n", gyroZOffset);
+
+
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
 
         // Read angular velocity from the gyroscope (Z-axis)
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
-        float angularVelocityZ = gyroZ / GYRO_SENSITIVITY;  // Convert to degrees/sec
+        float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
 
-        // Calculate correction angle
         float correctionAngle = -angularVelocityZ;
 
         // Clamp correction angle
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        // Set the servo angle
         setServoAngle(STEERING_SERVO_PIN, correctionAngle);
-
-        printf("Gyro Z: %.2f, Correction Angle: %.2f\n", angularVelocityZ, correctionAngle);
+        usleep(100000);  // 100 ms delay
 
         if (!isRunning) {
             break;
