@@ -11,8 +11,6 @@
 #define MPU6050_ADDRESS 0x68
 #define GYRO_ZOUT_H 0x47
 #define GYRO_SENSITIVITY 131.0 // For MPU6050, sensitivity is typically 131 LSB/°/s
-#define CAR_TURNS_MIN_PWM 500
-#define CAR_TURNS_MAX_PWM 2500
 #define MAX_CORRECTION_ANGLE 20.0 // Максимальный угол коррекции
 #define NEUTRAL_ANGLE 83.0 // Нейтральный угол для серво
 
@@ -101,7 +99,7 @@ void* correctionThread(void *arg) {
 
         pthread_mutex_unlock(&correctionMutex);
 
-        usleep(5000); // Sleep 20ms between readings
+        usleep(10000); // Sleep 20ms between readings
     }
     return NULL;
 }
@@ -164,34 +162,24 @@ int main() {
     calibrateGyro(handle, 100);
 
     // Create thread for correction logic
-//    pthread_t correctionThreadHandle;
-//    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
-//        printf("Failed to create correction thread\n");
-//        gpioTerminate();
-//        return -1;
-//    }
+    pthread_t correctionThreadHandle;
+    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
+        printf("Failed to create correction thread\n");
+        gpioTerminate();
+        return -1;
+    }
 
     // Main loop to control servo based on the correction angle
     float angle = 83.0f;  // Start with neutral position
-//    setServoAngle(&angle);
-//    usleep(1000000);
-
-    int pulseWidth = 1500; // Начальное значение
+    setServoAngle(&angle);
+    usleep(1000000);
 
     while (isRunning) {
-//        lws_service(webSocketConnection.context, 100);
-        printf("Введите ширину импульса (500-2500): ");
-        scanf("%d", &pulseWidth);
-        if (pulseWidth < CAR_TURNS_MIN_PWM || pulseWidth > CAR_TURNS_MAX_PWM) {
-            printf("Значение вне диапазона!\n");
-            continue;
-        }
-        gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
-        printf("Установлено: %d\n", pulseWidth);
+        lws_service(webSocketConnection.context, 100);
     }
 
     // Cleanup
-//    pthread_join(correctionThreadHandle, NULL);
+    pthread_join(correctionThreadHandle, NULL);
     gpioTerminate();
     return 0;
 }
