@@ -160,6 +160,10 @@ int main() {
         return -1;
     }
 
+    float angle = 90.0f;  // Start with neutral position
+    setServoAngle(&angle);
+    usleep(1000000);
+
     // Main loop (placeholder)
     while (isRunning) {
         usleep(100000); // Keep the program running
