@@ -162,12 +162,12 @@ int main() {
     calibrateGyro(handle, 100);
 
     // Create thread for correction logic
-    pthread_t correctionThreadHandle;
-    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
-        printf("Failed to create correction thread\n");
-        gpioTerminate();
-        return -1;
-    }
+//    pthread_t correctionThreadHandle;
+//    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
+//        printf("Failed to create correction thread\n");
+//        gpioTerminate();
+//        return -1;
+//    }
 
     // Main loop to control servo based on the correction angle
     float angle = 90.0f;  // Start with neutral position
@@ -179,7 +179,7 @@ int main() {
     }
 
     // Cleanup
-    pthread_join(correctionThreadHandle, NULL);
+//    pthread_join(correctionThreadHandle, NULL);
     gpioTerminate();
     return 0;
 }
