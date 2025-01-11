@@ -25,7 +25,7 @@ RcCar *rcCar = NULL;
 
 // Initialize MPU6050
 void initMPU6050(int handle) {
-    i2cWriteByteData(handle, PWR_MGMT_1, 0x00);  // Wake up the MPU6050
+    i2cWriteByteData(handle, 0x6B, 0x00);  // Wake up the MPU6050
     usleep(100000);  // Wait for initialization
 }
 
