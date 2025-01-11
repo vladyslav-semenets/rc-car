@@ -164,24 +164,34 @@ int main() {
     calibrateGyro(handle, 100);
 
     // Create thread for correction logic
-    pthread_t correctionThreadHandle;
-    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
-        printf("Failed to create correction thread\n");
-        gpioTerminate();
-        return -1;
-    }
+//    pthread_t correctionThreadHandle;
+//    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
+//        printf("Failed to create correction thread\n");
+//        gpioTerminate();
+//        return -1;
+//    }
 
     // Main loop to control servo based on the correction angle
     float angle = 83.0f;  // Start with neutral position
-    setServoAngle(&angle);
-    usleep(1000000);
+//    setServoAngle(&angle);
+//    usleep(1000000);
+
+    int pulseWidth = 1500; // Начальное значение
 
     while (isRunning) {
-        lws_service(webSocketConnection.context, 100);
+//        lws_service(webSocketConnection.context, 100);
+        printf("Введите ширину импульса (500-2500): ");
+        scanf("%d", &pulseWidth);
+        if (pulseWidth < MIN_PULSE || pulseWidth > MAX_PULSE) {
+            printf("Значение вне диапазона!\n");
+            continue;
+        }
+        gpioServo(SERVO_PIN, pulseWidth);
+        printf("Установлено: %d\n", pulseWidth);
     }
 
     // Cleanup
-    pthread_join(correctionThreadHandle, NULL);
+//    pthread_join(correctionThreadHandle, NULL);
     gpioTerminate();
     return 0;
 }
