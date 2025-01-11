@@ -146,7 +146,7 @@ int main() {
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
         // Apply correction
-        turnTo(&correctionAngle);
+        setServoAngle(&correctionAngle);
 
         usleep(100000);  // 100 ms delay
 
