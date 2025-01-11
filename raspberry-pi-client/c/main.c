@@ -63,36 +63,32 @@ void setServoAngle(float angle) {
     printf("Servo set to %.2f degrees (Pulse Width: %d)\n", angle, pulseWidth);
 }
 
-// Рассчёт угла на основе акселерометра
 float calculateAngleFromAccel(int handle) {
     short accelX = readWord(handle, ACCEL_XOUT_H);
     short accelZ = readWord(handle, ACCEL_ZOUT_H);
     float angle = atan2f((float)accelX, (float)accelZ) * (180.0 / M_PI);
+    printf("AccelX: %d, AccelZ: %d, Calculated angle: %.2f\n", accelX, accelZ, angle);
     return angle;
 }
 
-// Поток управления серво
 void* servoControlThread(void* arg) {
     int handle = *(int*)arg;
 
     while (isRunning) {
-        // Читаем угол из акселерометра
         float currentAngle = calculateAngleFromAccel(handle);
         float correctionAngle = NEUTRAL_ANGLE - currentAngle;
 
-        // Ограничиваем угол коррекции
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        // Рассчитываем итоговый угол для сервопривода
         float servoAngle = NEUTRAL_ANGLE + correctionAngle;
 
-        // Устанавливаем угол сервопривода
         pthread_mutex_lock(&servoMutex);
         setServoAngle(servoAngle);
         pthread_mutex_unlock(&servoMutex);
 
-        //usleep(20000);  // Задержка 20 мс
+        printf("Correction angle: %.2f, Servo angle: %.2f\n", correctionAngle, servoAngle);
+        usleep(20000);
     }
     return NULL;
 }
