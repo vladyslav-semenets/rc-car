@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <pigpio.h>
 #include "libs/env/dotenv.h"
 #include "websocket.h"
@@ -9,28 +10,43 @@
 #include <pthread.h>
 
 #define MPU6050_ADDRESS 0x68
-#define GYRO_ZOUT_H 0x47
-#define GYRO_SENSITIVITY 131.0 // For MPU6050, sensitivity is typically 131 LSB/°/s
-#define MAX_CORRECTION_ANGLE 20.0 // Максимальный угол коррекции
-#define NEUTRAL_ANGLE 90.0 // Нейтральный угол для серво
+#define GYRO_XOUT_H 0x43
+#define GYRO_YOUT_H 0x45
+#define ACCEL_XOUT_H 0x3B
+#define ACCEL_YOUT_H 0x3D
+#define ACCEL_ZOUT_H 0x3F
+#define GYRO_SENSITIVITY 131.0f // Гироскоп: 131 LSB/°/s
+#define ACCEL_SENSITIVITY 16384.0f // Акселерометр: 16384 LSB/g
+#define MAX_CORRECTION_ANGLE 20.0f // Максимальный угол коррекции
+#define NEUTRAL_ANGLE 90.0f       // Нейтральный угол сервопривода
 
-float gyroZOffset = 0.0; // Смещение гироскопа
-float scalingFactor = 15.0; // Коэффициент коррекции
-float deadZone = 0.5; // Мёртвая зона для фильтрации мелких движений
-
+float gyroYOffset = 0.0f; // Смещение гироскопа по Y
+float scalingFactor = 15.0f; // Коэффициент коррекции
+float deadZone = 0.5f; // Мертвая зона для фильтрации мелких движений
 int isRunning = 1;
 
-RcCar *rcCar = NULL;
-
-// Shared variables between threads
-float correctionAngle = 0.0;
-float previousCorrectionAngle = 0.0;
+// Shared variables
+float correctionAngle = 0.0f;
+float previousCorrectionAngle = 0.0f;
 pthread_mutex_t correctionMutex = PTHREAD_MUTEX_INITIALIZER;
 
-// Initialize MPU6050
-void initMPU6050(int handle) {
-    i2cWriteByteData(handle, 0x6B, 0x00);  // Wake up the MPU6050
-    usleep(100000);  // Wait for initialization
+// Map servo angle to pulse width
+void setServoAngle(const float *degrees) {
+    const int pulseWidth = (int)floor(
+        CAR_TURNS_MIN_PWM + ((*degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM))
+    );
+    gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
+    printf("Servo Pulse Width: %d (Degrees: %.2f)\n", pulseWidth, *degrees);
+}
+
+// Calculate pitch from accelerometer data
+float calculatePitch(short accelX, short accelY, short accelZ) {
+    return atan2f((float)accelY, sqrtf((float)(accelX * accelX + accelZ * accelZ))) * 180.0f / M_PI;
+}
+
+// Complementary filter
+float complementaryFilter(float prevAngle, float gyroRate, float accelAngle, float alpha, float deltaTime) {
+    return alpha * (prevAngle + gyroRate * deltaTime) + (1.0f - alpha) * accelAngle;
 }
 
 // Read 16-bit value from MPU6050
@@ -40,82 +56,68 @@ short readWord(int handle, int reg) {
     return (short)((high << 8) | low);
 }
 
-// Map servo angle to pulse width
-void setServoAngle(const float *degrees) {
-    const int pulseWidth = (int)floor(
-           CAR_TURNS_MIN_PWM +
-           ((*degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM))
-       );
-    gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
-    printf("Servo Pulse Width: %d (Degrees: %.2f)\n", pulseWidth, *degrees);
-}
-
-// Smooth the correction angle
-float smoothCorrectionAngle(float currentAngle, float targetAngle, float smoothingFactor) {
-    return currentAngle + (targetAngle - currentAngle) * smoothingFactor;
-}
-
-// Calibration of the gyro
+// Calibrate the gyro to calculate offsets
 void calibrateGyro(int handle, int samples) {
     printf("Calibrating gyro...\n");
-    float sumZ = 0.0;
+    float sumY = 0.0;
     for (int i = 0; i < samples; i++) {
-        short gyroZ = readWord(handle, GYRO_ZOUT_H);
-        sumZ += gyroZ / GYRO_SENSITIVITY;
+        short gyroY = readWord(handle, GYRO_YOUT_H);
+        sumY += gyroY / GYRO_SENSITIVITY;
         usleep(10000); // 10 ms delay between samples
     }
-    gyroZOffset = sumZ / samples;
-    printf("Gyro Z Offset: %.2f\n", gyroZOffset);
+    gyroYOffset = sumY / samples;
+    printf("Gyro Y Offset: %.2f\n", gyroYOffset);
 }
 
 // Thread function for correction logic
 void* correctionThread(void *arg) {
-    int handle = *(int *)arg;  // Get the handle from arguments
+    int handle = *(int *)arg;
+    float pitch = 0.0f; // Текущий угол наклона
+    float gyroRatePitch = 0.0f;
+
     while (isRunning) {
-        short gyroZ = readWord(handle, GYRO_ZOUT_H);
-        float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
+        // Read accelerometer and gyroscope data
+        short accelX = readWord(handle, ACCEL_XOUT_H);
+        short accelY = readWord(handle, ACCEL_YOUT_H);
+        short accelZ = readWord(handle, ACCEL_ZOUT_H);
+        short gyroY = readWord(handle, GYRO_YOUT_H);
 
-        // Рассчитываем целевой угол коррекции
-        float tempCorrectionAngle = 0.0;
-        if (fabs(angularVelocityZ) > deadZone) {
-            tempCorrectionAngle = -angularVelocityZ * scalingFactor;
-        }
+        // Convert gyro data to angular velocity
+        gyroRatePitch = gyroY / GYRO_SENSITIVITY - gyroYOffset;
 
-        // Ограничиваем угол коррекции
-        if (tempCorrectionAngle > MAX_CORRECTION_ANGLE) tempCorrectionAngle = MAX_CORRECTION_ANGLE;
-        if (tempCorrectionAngle < -MAX_CORRECTION_ANGLE) tempCorrectionAngle = -MAX_CORRECTION_ANGLE;
+        // Calculate pitch from accelerometer
+        float accelPitch = calculatePitch(accelX, accelY, accelZ);
 
-        // Apply smoothing
+        // Apply complementary filter
+        pitch = complementaryFilter(pitch, gyroRatePitch, accelPitch, 0.98f, 0.02f);
+
+        // Calculate correction angle
         pthread_mutex_lock(&correctionMutex);
-        correctionAngle = smoothCorrectionAngle(previousCorrectionAngle, tempCorrectionAngle, 0.05f);
-        previousCorrectionAngle = correctionAngle;
+        correctionAngle = -pitch * scalingFactor;
 
-        // Set the servo angle from the corrected value
+        // Clamp correction angle
+        if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
+        if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
+
+        // Update servo angle
         float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
-        if (currentServoAngle > 180.0) currentServoAngle = 180.0;
-        if (currentServoAngle < 0.0) currentServoAngle = 0.0;
+        if (currentServoAngle > 180.0f) currentServoAngle = 180.0f;
+        if (currentServoAngle < 0.0f) currentServoAngle = 0.0f;
 
         setServoAngle(&currentServoAngle);
-
         pthread_mutex_unlock(&correctionMutex);
 
-        usleep(20000); // Sleep 20ms between readings
+        usleep(20000); // Sleep for 20 ms
     }
     return NULL;
 }
 
 // Signal handling for clean shutdown
 void handleSignal(const int signal) {
-    switch (signal) {
-        case SIGINT:
-        case SIGTERM:
-        case SIGTSTP:
-            isRunning = 0;
-            closeWebSocketServer();
-            free(rcCar);
-            exit(0);
-        default:
-            break;
+    if (signal == SIGINT || signal == SIGTERM || signal == SIGTSTP) {
+        isRunning = 0;
+        gpioTerminate();
+        exit(0);
     }
 }
 
@@ -126,56 +128,41 @@ int main() {
     }
 
     gpioSetMode(CAR_TURNS_SERVO_PIN, PI_OUTPUT);
-    gpioSetMode(CAR_ESC_PIN, PI_OUTPUT);
-    gpioSetMode(CAR_CAMERA_GIMBAL_PIN1, PI_OUTPUT);
-    gpioSetMode(CAR_CAMERA_GIMBAL_PIN3, PI_OUTPUT);
-    gpioSetMode(CAR_CAMERA_GIMBAL_PIN4, PI_OUTPUT);
-
-    rcCar = newRcCar();
-    env_load(".env", false);
 
     struct sigaction sa;
-    WebSocketConnection webSocketConnection = connectToWebSocketServer();
-
     sa.sa_handler = handleSignal;
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
-
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    setWebSocketEventCallback(rcCar->processWebSocketEvents);
-
     // Open I2C connection to MPU6050
     int handle = i2cOpen(1, MPU6050_ADDRESS, 0);
     if (handle < 0) {
-        printf("Failed to open I2C connection\n");
+        fprintf(stderr, "Failed to open I2C connection\n");
         gpioTerminate();
         return -1;
     }
 
     // Initialize MPU6050
-    initMPU6050(handle);
+    i2cWriteByteData(handle, 0x6B, 0x00); // Wake up the MPU6050
+    usleep(100000); // Wait for initialization
 
-    // Calibration offset for gyroscope bias
+    // Calibrate gyro
     calibrateGyro(handle, 100);
 
-    // Create thread for correction logic
+    // Start correction thread
     pthread_t correctionThreadHandle;
     if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
-        printf("Failed to create correction thread\n");
+        fprintf(stderr, "Failed to create correction thread\n");
         gpioTerminate();
         return -1;
     }
 
-    // Main loop to control servo based on the correction angle
-    float angle = 90.0f;  // Start with neutral position
-    setServoAngle(&angle);
-    usleep(1000000);
-
+    // Main loop (placeholder)
     while (isRunning) {
-        lws_service(webSocketConnection.context, 100);
+        usleep(100000); // Keep the program running
     }
 
     // Cleanup
