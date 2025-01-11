@@ -7,21 +7,24 @@
 #include "websocket.h"
 #include "rc-car.h"
 
-#define MPU6050_ADDR 0x68  // I2C address of MPU6050
-#define PWR_MGMT_1 0x6B
+#define MPU6050_ADDRESS 0x68
 #define GYRO_ZOUT_H 0x47
+#define GYRO_SENSITIVITY 131.0 // For MPU6050, sensitivity is typically 131 LSB/°/s
+#define CAR_TURNS_MIN_PWM 500
+#define CAR_TURNS_MAX_PWM 2500
+#define MAX_CORRECTION_ANGLE 20.0 // Максимальный угол коррекции
+#define NEUTRAL_ANGLE 83.0 // Нейтральный угол для серво
 
-#define STEERING_SERVO_PIN 17  // GPIO pin for the steering servo
-#define MIN_SERVO_PULSE_WIDTH 500   // Minimum pulse width (0.5 ms)
-#define MAX_SERVO_PULSE_WIDTH 2500  // Maximum pulse width (2.5 ms)
-#define SERVO_NEUTRAL_ANGLE 83  // Neutral steering angle (degrees)
+float gyroZOffset = 0.0; // Смещение гироскопа
+float scalingFactor = 2.0; // Коэффициент коррекции
+float deadZone = 0.5; // Мёртвая зона для фильтрации мелких движений
 
-// Sensitivity of the gyroscope
-#define GYRO_SENSITIVITY 131.0  // Unit: degrees/sec
-
-// Maximum correction angle for the servo
-#define MAX_CORRECTION_ANGLE 30.0  // In degrees
-
+// Чтение данных из MPU6050
+short readWord(int handle, int reg) {
+    char high = i2cReadByteData(handle, reg);
+    char low = i2cReadByteData(handle, reg + 1);
+    return (high << 8) | (low & 0xFF);
+}
 int isRunning = 1;
 
 RcCar *rcCar = NULL;
@@ -41,26 +44,24 @@ short readWord(int handle, int reg) {
 
 // Map servo angle to pulse width
 void setServoAngle(const float *degrees) {
-    // Adjust degrees relative to neutral
-    float adjustedDegrees = *degrees;
-
-    // Map adjusted degrees to pulse width
     const int pulseWidth = (int)floor(
-        MIN_SERVO_PULSE_WIDTH +
-        ((adjustedDegrees + SERVO_NEUTRAL_ANGLE) / 180.0f) *
-        (MAX_SERVO_PULSE_WIDTH - MIN_SERVO_PULSE_WIDTH)
-    );
+           CAR_TURNS_MIN_PWM +
+           ((*degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM))
+       );
+    gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
+    printf("Servo Pulse Width: %d (Degrees: %.2f)\n", pulseWidth, *degrees);
+}
 
-    // Clamp pulse width to valid range
-    int clampedPulseWidth = pulseWidth;
-    if (clampedPulseWidth < MIN_SERVO_PULSE_WIDTH) clampedPulseWidth = MIN_SERVO_PULSE_WIDTH;
-    if (clampedPulseWidth > MAX_SERVO_PULSE_WIDTH) clampedPulseWidth = MAX_SERVO_PULSE_WIDTH;
-
-    // Move the servo
-    gpioServo(CAR_TURNS_SERVO_PIN, clampedPulseWidth);
-
-    // Debug output
-    printf("Degrees: %.2f, Adjusted Degrees: %.2f, Pulse Width: %d\n", *degrees, adjustedDegrees, clampedPulseWidth);
+void calibrateGyro(int handle, int samples) {
+    printf("Calibrating gyro...\n");
+    float sumZ = 0.0;
+    for (int i = 0; i < samples; i++) {
+        short gyroZ = readWord(handle, GYRO_ZOUT_H);
+        sumZ += gyroZ / GYRO_SENSITIVITY;
+        usleep(10000); // 10 ms delay between samples
+    }
+    gyroZOffset = sumZ / samples;
+    printf("Gyro Z Offset: %.2f\n", gyroZOffset);
 }
 
 void handleSignal(const int signal) {
@@ -120,17 +121,11 @@ int main() {
     // Calibration offset for gyroscope bias
     float gyroZOffset = 0.0;
 
-    // Gyroscope calibration
-    for (int i = 0; i < 100; i++) {
-        short gyroZ = readWord(handle, GYRO_ZOUT_H);
-        gyroZOffset += gyroZ / GYRO_SENSITIVITY;
-        usleep(10000);  // 10 ms delay
-    }
-    gyroZOffset /= 100.0;  // Average offset
-    printf("Gyro Z Offset: %.2f\n", gyroZOffset);
+    calibrateGyro(handle, 100);
 
     float angle = 83.0f;
     setServoAngle(&angle);
+    usleep(1000000);
 
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
@@ -138,37 +133,22 @@ int main() {
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
         float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
 
-        // Apply dead zone
-        float deadZone = 1.0;
+        // Рассчитываем угол коррекции
         float correctionAngle = 0.0;
         if (fabs(angularVelocityZ) > deadZone) {
-            correctionAngle = -angularVelocityZ * 0.5; // Scale down corrections
+            correctionAngle = -angularVelocityZ * scalingFactor;
         }
 
-        // Clamp correction angle
+        // Ограничиваем угол коррекции
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        // Smooth correction with low-pass filter
-        static float previousCorrection = 0.0;
-        float smoothingFactor = 0.1;
-        correctionAngle = smoothingFactor * correctionAngle + (1.0 - smoothingFactor) * previousCorrection;
-        previousCorrection = correctionAngle;
-
-        // Gradual servo movement
-        static float currentServoAngle = 83.0;
-        float step = 10.0f; // Degrees per update
-        if (fabs(correctionAngle - currentServoAngle) > step) {
-            if (correctionAngle > currentServoAngle) {
-                currentServoAngle += step;
-            } else {
-                currentServoAngle -= step;
-            }
-        } else {
-            currentServoAngle = correctionAngle;
-        }
-        // Apply correction
+        // Применяем коррекцию
+        float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
         setServoAngle(&correctionAngle);
+
+        printf("Gyro Z: %.2f, Correction Angle: %.2f, Servo Angle: %.2f\n",
+              angularVelocityZ, correctionAngle, currentServoAngle);
 
         usleep(100000);  // 100 ms delay
 
