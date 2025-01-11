@@ -41,13 +41,14 @@ short readWord(int handle, int reg) {
 
 // Map servo angle to pulse width
 void setServoAngle(const float *degrees) {
-    // Adjust degrees relative to the neutral position
-    float adjustedDegrees = *degrees - 83.0f;
+    // Adjust degrees relative to neutral
+    float adjustedDegrees = *degrees;
 
     // Map adjusted degrees to pulse width
     const int pulseWidth = (int)floor(
         MIN_SERVO_PULSE_WIDTH +
-        ((adjustedDegrees + 90.0f) / 180.0f) * (MAX_SERVO_PULSE_WIDTH - MIN_SERVO_PULSE_WIDTH)
+        ((adjustedDegrees + SERVO_NEUTRAL_ANGLE) / 180.0f) *
+        (MAX_SERVO_PULSE_WIDTH - MIN_SERVO_PULSE_WIDTH)
     );
 
     // Clamp pulse width to valid range
@@ -134,18 +135,20 @@ int main() {
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
 
-        // Read angular velocity from the gyroscope (Z-axis)
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
         float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
 
+        // Calculate correction angle
         float correctionAngle = -angularVelocityZ;
 
         // Clamp correction angle
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        setServoAngle(&correctionAngle);
-        sleep(2);  // 100 ms delay
+        // Apply correction
+        turnTo(&correctionAngle);
+
+        usleep(100000);  // 100 ms delay
 
         if (!isRunning) {
             break;
