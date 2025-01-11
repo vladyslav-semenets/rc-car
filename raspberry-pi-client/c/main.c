@@ -12,7 +12,7 @@
 #define GYRO_ZOUT_H 0x47
 #define GYRO_SENSITIVITY 131.0 // For MPU6050, sensitivity is typically 131 LSB/°/s
 #define MAX_CORRECTION_ANGLE 20.0 // Максимальный угол коррекции
-#define NEUTRAL_ANGLE 83.0 // Нейтральный угол для серво
+#define NEUTRAL_ANGLE 90.0 // Нейтральный угол для серво
 
 float gyroZOffset = 0.0; // Смещение гироскопа
 float scalingFactor = 15.0; // Коэффициент коррекции
