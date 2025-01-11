@@ -127,25 +127,33 @@ int main() {
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
         float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
 
+        // Логирование данных гироскопа
+        printf("Gyro Z Raw: %d, Angular Velocity Z: %.2f\n", gyroZ, angularVelocityZ);
+
         // Рассчитываем угол коррекции
         float correctionAngle = 0.0;
         if (fabs(angularVelocityZ) > deadZone) {
-            correctionAngle = -angularVelocityZ * scalingFactor;
+            correctionAngle = -angularVelocityZ * scalingFactor; // Пропорциональная коррекция
         }
 
         // Ограничиваем угол коррекции
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        // Применяем коррекцию
+        // Логирование угла коррекции
+        printf("Correction Angle: %.2f\n", correctionAngle);
+
+        // Применяем коррекцию к углу серво
         float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
-        setServoAngle(&correctionAngle);
+        if (currentServoAngle > 180.0) currentServoAngle = 180.0;
+        if (currentServoAngle < 0.0) currentServoAngle = 0.0;
 
-        printf("Gyro Z: %.2f, Correction Angle: %.2f, Servo Angle: %.2f\n",
-              angularVelocityZ, correctionAngle, currentServoAngle);
+        // Логирование финального угла
+        printf("Servo Angle: %.2f\n", currentServoAngle);
 
-        usleep(100000);  // 100 ms delay
+        setServoAngle(&currentServoAngle);
 
+        usleep(100000); // Задержка 100 мс
         if (!isRunning) {
             break;
         }
