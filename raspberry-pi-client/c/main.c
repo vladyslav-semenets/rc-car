@@ -129,7 +129,7 @@ int main() {
 
 
     while (isRunning) {
-//        lws_service(webSocketConnection.context, 100);
+        lws_service(webSocketConnection.context, 100);
 
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
         float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
