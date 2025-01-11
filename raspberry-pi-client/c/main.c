@@ -40,7 +40,7 @@ short readWord(int handle, int reg) {
 }
 
 // Map servo angle to pulse width
-void setServoAngle(int gpioPin, float angle) {
+void setServoAngle(const float *degrees) {
     // Adjust degrees relative to the neutral position
     float adjustedDegrees = *degrees - 83.0f;
 
@@ -128,7 +128,7 @@ int main() {
     gyroZOffset /= 100.0;  // Average offset
     printf("Gyro Z Offset: %.2f\n", gyroZOffset);
 
-    setServoAngle(STEERING_SERVO_PIN, 83.0f);
+    setServoAngle(83.0f);
 
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
