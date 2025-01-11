@@ -6,6 +6,7 @@
 #include "libs/env/dotenv.h"
 #include "websocket.h"
 #include "rc-car.h"
+#include <pthread.h>
 
 #define MPU6050_ADDRESS 0x68
 #define GYRO_ZOUT_H 0x47
@@ -22,6 +23,11 @@ float deadZone = 0.5; // Мёртвая зона для фильтрации м�
 int isRunning = 1;
 
 RcCar *rcCar = NULL;
+
+// Shared variables between threads
+float correctionAngle = 0.0;
+float previousCorrectionAngle = 0.0;
+pthread_mutex_t correctionMutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Initialize MPU6050
 void initMPU6050(int handle) {
@@ -46,6 +52,12 @@ void setServoAngle(const float *degrees) {
     printf("Servo Pulse Width: %d (Degrees: %.2f)\n", pulseWidth, *degrees);
 }
 
+// Smooth the correction angle
+float smoothCorrectionAngle(float currentAngle, float targetAngle, float smoothingFactor) {
+    return currentAngle + (targetAngle - currentAngle) * smoothingFactor;
+}
+
+// Calibration of the gyro
 void calibrateGyro(int handle, int samples) {
     printf("Calibrating gyro...\n");
     float sumZ = 0.0;
@@ -58,6 +70,43 @@ void calibrateGyro(int handle, int samples) {
     printf("Gyro Z Offset: %.2f\n", gyroZOffset);
 }
 
+// Thread function for correction logic
+void* correctionThread(void *arg) {
+    int handle = *(int *)arg;  // Get the handle from arguments
+    while (isRunning) {
+        short gyroZ = readWord(handle, GYRO_ZOUT_H);
+        float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
+
+        // Рассчитываем целевой угол коррекции
+        float tempCorrectionAngle = 0.0;
+        if (fabs(angularVelocityZ) > deadZone) {
+            tempCorrectionAngle = -angularVelocityZ * scalingFactor;
+        }
+
+        // Ограничиваем угол коррекции
+        if (tempCorrectionAngle > MAX_CORRECTION_ANGLE) tempCorrectionAngle = MAX_CORRECTION_ANGLE;
+        if (tempCorrectionAngle < -MAX_CORRECTION_ANGLE) tempCorrectionAngle = -MAX_CORRECTION_ANGLE;
+
+        // Apply smoothing
+        pthread_mutex_lock(&correctionMutex);
+        correctionAngle = smoothCorrectionAngle(previousCorrectionAngle, tempCorrectionAngle, 0.05f);
+        previousCorrectionAngle = correctionAngle;
+
+        // Set the servo angle from the corrected value
+        float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
+        if (currentServoAngle > 180.0) currentServoAngle = 180.0;
+        if (currentServoAngle < 0.0) currentServoAngle = 0.0;
+
+        setServoAngle(&currentServoAngle);
+
+        pthread_mutex_unlock(&correctionMutex);
+
+        usleep(20000); // Sleep 20ms between readings
+    }
+    return NULL;
+}
+
+// Signal handling for clean shutdown
 void handleSignal(const int signal) {
     switch (signal) {
         case SIGINT:
@@ -70,10 +119,6 @@ void handleSignal(const int signal) {
         default:
             break;
     }
-}
-
-float smoothCorrectionAngle(float currentAngle, float targetAngle, float smoothingFactor) {
-    return currentAngle + (targetAngle - currentAngle) * smoothingFactor;
 }
 
 int main() {
@@ -104,7 +149,6 @@ int main() {
 
     setWebSocketEventCallback(rcCar->processWebSocketEvents);
 
-
     // Open I2C connection to MPU6050
     int handle = i2cOpen(1, MPU6050_ADDRESS, 0);
     if (handle < 0) {
@@ -117,53 +161,27 @@ int main() {
     initMPU6050(handle);
 
     // Calibration offset for gyroscope bias
-    float gyroZOffset = 0.0;
-
     calibrateGyro(handle, 100);
 
-    float angle = 83.0f;
+    // Create thread for correction logic
+    pthread_t correctionThreadHandle;
+    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
+        printf("Failed to create correction thread\n");
+        gpioTerminate();
+        return -1;
+    }
+
+    // Main loop to control servo based on the correction angle
+    float angle = 83.0f;  // Start with neutral position
     setServoAngle(&angle);
     usleep(1000000);
 
-    float previousCorrectionAngle = 0.0;
-
-
     while (isRunning) {
         lws_service(webSocketConnection.context, 100);
-
-        short gyroZ = readWord(handle, GYRO_ZOUT_H);
-        float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
-
-        // Рассчитываем целевой угол коррекции
-        float correctionAngle = 0.0;
-        if (fabs(angularVelocityZ) > deadZone) {
-            correctionAngle = -angularVelocityZ * scalingFactor;
-        }
-
-        // Ограничиваем угол коррекции
-        if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
-        if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
-
-        // Применяем сглаживание
-        float smoothedCorrectionAngle = smoothCorrectionAngle(previousCorrectionAngle, correctionAngle, 0.05f);
-        previousCorrectionAngle = smoothedCorrectionAngle;
-
-        // Рассчитываем текущий угол серво
-        float currentServoAngle = NEUTRAL_ANGLE + smoothedCorrectionAngle;
-        if (currentServoAngle > 180.0) currentServoAngle = 180.0;
-        if (currentServoAngle < 0.0) currentServoAngle = 0.0;
-
-        // Устанавливаем угол серво
-        setServoAngle(&currentServoAngle);
-
-        // Логирование
-        printf("Gyro Z: %.2f, Smoothed Correction Angle: %.2f, Servo Angle: %.2f\n",
-               angularVelocityZ, smoothedCorrectionAngle, currentServoAngle);
-
-        usleep(20000); // 50 мс
-        if (!isRunning) {
-            break;
-        }
     }
+
+    // Cleanup
+    pthread_join(correctionThreadHandle, NULL);
+    gpioTerminate();
     return 0;
 }
