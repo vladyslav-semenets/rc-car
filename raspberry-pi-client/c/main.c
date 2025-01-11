@@ -128,6 +128,7 @@ int main() {
     gyroZOffset /= 100.0;  // Average offset
     printf("Gyro Z Offset: %.2f\n", gyroZOffset);
 
+    setServoAngle(STEERING_SERVO_PIN, 83.0f);
 
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
@@ -142,8 +143,8 @@ int main() {
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        setServoAngle(STEERING_SERVO_PIN, correctionAngle);
-        usleep(100000);  // 100 ms delay
+//        setServoAngle(STEERING_SERVO_PIN, correctionAngle);
+//        usleep(100000);  // 100 ms delay
 
         if (!isRunning) {
             break;
