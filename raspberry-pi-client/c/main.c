@@ -22,6 +22,10 @@
 // Maximum correction angle for the servo
 #define MAX_CORRECTION_ANGLE 30.0  // In degrees
 
+int isRunning = 1;
+
+RcCar *rcCar = NULL;
+
 // Initialize MPU6050
 void initMPU6050(int handle) {
     i2cWriteByteData(handle, PWR_MGMT_1, 0x00);  // Wake up the MPU6050
