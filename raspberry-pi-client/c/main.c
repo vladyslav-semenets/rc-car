@@ -170,7 +170,7 @@ int main() {
     }
 
     // Main loop to control servo based on the correction angle
-    float angle = 83.0f;  // Start with neutral position
+    float angle = 90.0f;  // Start with neutral position
     setServoAngle(&angle);
     usleep(1000000);
 
