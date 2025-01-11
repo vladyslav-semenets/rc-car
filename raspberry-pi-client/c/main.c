@@ -14,7 +14,6 @@
 #define STEERING_SERVO_PIN 17  // GPIO pin for the steering servo
 #define MIN_SERVO_PULSE_WIDTH 500   // Minimum pulse width (0.5 ms)
 #define MAX_SERVO_PULSE_WIDTH 2500  // Maximum pulse width (2.5 ms)
-#define SERVO_CENTER 83             // Neutral steering position in degrees
 #define SERVO_NEUTRAL_ANGLE 83  // Neutral steering angle (degrees)
 
 // Sensitivity of the gyroscope
@@ -42,24 +41,25 @@ short readWord(int handle, int reg) {
 
 // Map servo angle to pulse width
 void setServoAngle(int gpioPin, float angle) {
-    int pulseWidth;
+    // Adjust degrees relative to the neutral position
+    float adjustedDegrees = *degrees - 83.0f;
 
-    // Adjust the angle around the neutral position
-    float adjustedAngle = SERVO_NEUTRAL_ANGLE + angle;
-
-    // Map adjusted angle to pulse width (500-2500 µs)
-    pulseWidth = MIN_SERVO_PULSE_WIDTH +
-                 ((adjustedAngle - SERVO_NEUTRAL_ANGLE) / MAX_CORRECTION_ANGLE) *
-                 (MAX_SERVO_PULSE_WIDTH - MIN_SERVO_PULSE_WIDTH);
+    // Map adjusted degrees to pulse width
+    const int pulseWidth = (int)floor(
+        MIN_SERVO_PULSE_WIDTH +
+        ((adjustedDegrees + 90.0f) / 180.0f) * (MAX_SERVO_PULSE_WIDTH - MIN_SERVO_PULSE_WIDTH)
+    );
 
     // Clamp pulse width to valid range
-    if (pulseWidth < MIN_SERVO_PULSE_WIDTH) pulseWidth = MIN_SERVO_PULSE_WIDTH;
-    if (pulseWidth > MAX_SERVO_PULSE_WIDTH) pulseWidth = MAX_SERVO_PULSE_WIDTH;
+    int clampedPulseWidth = pulseWidth;
+    if (clampedPulseWidth < MIN_SERVO_PULSE_WIDTH) clampedPulseWidth = MIN_SERVO_PULSE_WIDTH;
+    if (clampedPulseWidth > MAX_SERVO_PULSE_WIDTH) clampedPulseWidth = MAX_SERVO_PULSE_WIDTH;
 
-    // Set the servo position
-    gpioServo(gpioPin, pulseWidth);
+    // Move the servo
+    gpioServo(CAR_TURNS_SERVO_PIN, clampedPulseWidth);
 
-    printf("Angle: %.2f, Adjusted Angle: %.2f, Pulse Width: %d\n", angle, adjustedAngle, pulseWidth);
+    // Debug output
+    printf("Degrees: %.2f, Adjusted Degrees: %.2f, Pulse Width: %d\n", *degrees, adjustedDegrees, clampedPulseWidth);
 }
 
 void handleSignal(const int signal) {
