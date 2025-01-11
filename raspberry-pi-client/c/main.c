@@ -163,16 +163,16 @@ int main() {
 
     // Create thread for correction logic
     pthread_t correctionThreadHandle;
-    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
-        printf("Failed to create correction thread\n");
-        gpioTerminate();
-        return -1;
-    }
+//    if (pthread_create(&correctionThreadHandle, NULL, correctionThread, &handle) != 0) {
+//        printf("Failed to create correction thread\n");
+//        gpioTerminate();
+//        return -1;
+//    }
 
     // Main loop to control servo based on the correction angle
-    float angle = 90.0f;  // Start with neutral position
-    setServoAngle(&angle);
-    usleep(1000000);
+//    float angle = 90.0f;  // Start with neutral position
+//    setServoAngle(&angle);
+//    usleep(1000000);
 
     while (isRunning) {
         lws_service(webSocketConnection.context, 100);
