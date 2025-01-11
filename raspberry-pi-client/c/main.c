@@ -108,7 +108,7 @@ int main() {
 
 
     // Open I2C connection to MPU6050
-    int handle = i2cOpen(1, MPU6050_ADDR, 0);
+    int handle = i2cOpen(1, MPU6050_ADDRESS, 0);
     if (handle < 0) {
         printf("Failed to open I2C connection\n");
         gpioTerminate();
