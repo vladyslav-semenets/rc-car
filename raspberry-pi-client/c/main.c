@@ -20,7 +20,7 @@
 #define GYRO_SENSITIVITY 131.0  // Unit: degrees/sec
 
 // Maximum correction angle for the servo
-#define MAX_CORRECTION_ANGLE 10.0  // In degrees
+#define MAX_CORRECTION_ANGLE 30.0  // In degrees
 
 int isRunning = 1;
 
@@ -170,7 +170,7 @@ int main() {
         // Apply correction
         setServoAngle(&correctionAngle);
 
-        usleep(200000);  // 100 ms delay
+        usleep(100000);  // 100 ms delay
 
         if (!isRunning) {
             break;
