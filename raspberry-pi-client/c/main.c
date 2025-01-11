@@ -157,7 +157,7 @@ int main() {
 
         // Gradual servo movement
         static float currentServoAngle = 83.0;
-        float step = 0.5; // Degrees per update
+        float step = 10.0f; // Degrees per update
         if (fabs(correctionAngle - currentServoAngle) > step) {
             if (correctionAngle > currentServoAngle) {
                 currentServoAngle += step;
