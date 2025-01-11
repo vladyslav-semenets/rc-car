@@ -146,6 +146,12 @@ int main() {
     initMPU6050(handle);
     calibrateGyro(handle, 100);
 
+    setServoAngle(NEUTRAL_ANGLE);
+    printf("Servo initialized to neutral position (90 degrees).\n");
+
+    // Задержка для установки серво
+    usleep(500000); // 500 мс
+
     // Создаём поток управления серво
     pthread_t servoThread;
     if (pthread_create(&servoThread, NULL, servoControlThread, &handle) != 0) {
