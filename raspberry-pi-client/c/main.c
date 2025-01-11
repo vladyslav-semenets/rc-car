@@ -160,6 +160,7 @@ int main() {
         printf("Gyro Z: %.2f, Smoothed Correction Angle: %.2f, Servo Angle: %.2f\n",
                angularVelocityZ, smoothedCorrectionAngle, currentServoAngle);
 
+        usleep(20000); // 50 мс
         if (!isRunning) {
             break;
         }
