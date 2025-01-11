@@ -5,6 +5,10 @@
 #include <pigpio.h>
 #include <pthread.h>
 #include <math.h>
+#include "libs/env/dotenv.h"
+#include "websocket.h"
+#include "rc-car.h"
+#include <stdbool.h>
 
 #define MPU6050_ADDRESS 0x68
 #define ACCEL_XOUT_H 0x3B
@@ -18,6 +22,7 @@
 #define MAX_CORRECTION_ANGLE 20.0 // Максимальный угол коррекции
 
 int isRunning = 1;
+RcCar *rcCar = NULL;
 float gyroZOffset = 0.0; // Смещение гироскопа
 pthread_mutex_t servoMutex = PTHREAD_MUTEX_INITIALIZER;
 
