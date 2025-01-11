@@ -47,9 +47,9 @@ ActionType getActionType(const char *action) {
     return TURN_TO;
   } else if (strcmp(action, "reset-turns") == 0) {
     return RESET_TURNS;
-  } else if (strcmp(action, "steering-calibration-on" == 0)) {
+  } else if (strcmp(action, "steering-calibration-on") == 0) {
     return STEERING_CALIBRATION_ON;
-  } else if (strcmp(action, "steering-calibration-off" == 0)) {
+  } else if (strcmp(action, "steering-calibration-off") == 0) {
     return STEERING_CALIBRATION_OFF;
   } else if (strcmp(action, "change-degree-of-turns") == 0) {
     return CHANGE_DEGREE_OF_TURNS;
