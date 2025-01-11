@@ -129,7 +129,7 @@ int main() {
     printf("Gyro Z Offset: %.2f\n", gyroZOffset);
 
     float angle = 83.0f;
-    setServoAngle(angle);
+    setServoAngle(&angle);
 
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
