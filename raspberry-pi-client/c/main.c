@@ -101,7 +101,7 @@ void* correctionThread(void *arg) {
 
         pthread_mutex_unlock(&correctionMutex);
 
-        usleep(20000); // Sleep 20ms between readings
+        usleep(10000); // Sleep 20ms between readings
     }
     return NULL;
 }
