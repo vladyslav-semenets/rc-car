@@ -20,7 +20,7 @@
 #define GYRO_SENSITIVITY 131.0  // Unit: degrees/sec
 
 // Maximum correction angle for the servo
-#define MAX_CORRECTION_ANGLE 30.0  // In degrees
+#define MAX_CORRECTION_ANGLE 10.0  // In degrees
 
 int isRunning = 1;
 
@@ -138,17 +138,39 @@ int main() {
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
         float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
 
-        // Calculate correction angle
-        float correctionAngle = -angularVelocityZ;
+        // Apply dead zone
+        float deadZone = 1.0;
+        float correctionAngle = 0.0;
+        if (fabs(angularVelocityZ) > deadZone) {
+            correctionAngle = -angularVelocityZ * 0.5; // Scale down corrections
+        }
 
         // Clamp correction angle
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
+        // Smooth correction with low-pass filter
+        static float previousCorrection = 0.0;
+        float smoothingFactor = 0.1;
+        correctionAngle = smoothingFactor * correctionAngle + (1.0 - smoothingFactor) * previousCorrection;
+        previousCorrection = correctionAngle;
+
+        // Gradual servo movement
+        static float currentServoAngle = 83.0;
+        float step = 0.5; // Degrees per update
+        if (fabs(correctionAngle - currentServoAngle) > step) {
+            if (correctionAngle > currentServoAngle) {
+                currentServoAngle += step;
+            } else {
+                currentServoAngle -= step;
+            }
+        } else {
+            currentServoAngle = correctionAngle;
+        }
         // Apply correction
         setServoAngle(&correctionAngle);
 
-        usleep(100000);  // 100 ms delay
+        usleep(200000);  // 100 ms delay
 
         if (!isRunning) {
             break;
