@@ -11,7 +11,7 @@
 #define PWR_MGMT_1 0x6B
 #define GYRO_ZOUT_H 0x47
 
-#define STEERING_SERVO_PIN 18  // GPIO pin for the steering servo
+#define STEERING_SERVO_PIN 17  // GPIO pin for the steering servo
 #define MIN_SERVO_PULSE_WIDTH 500   // Minimum pulse width (0.5 ms)
 #define MAX_SERVO_PULSE_WIDTH 2500  // Maximum pulse width (2.5 ms)
 #define SERVO_CENTER 83             // Neutral steering position in degrees
@@ -125,7 +125,7 @@ int main() {
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
         // Set the servo angle
-//        setServoAngle(STEERING_SERVO_PIN, correctionAngle);
+        setServoAngle(STEERING_SERVO_PIN, correctionAngle);
 
         printf("Gyro Z: %.2f, Correction Angle: %.2f\n", angularVelocityZ, correctionAngle);
 
