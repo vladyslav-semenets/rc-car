@@ -19,12 +19,6 @@ float gyroZOffset = 0.0; // Смещение гироскопа
 float scalingFactor = 2.0; // Коэффициент коррекции
 float deadZone = 0.5; // Мёртвая зона для фильтрации мелких движений
 
-// Чтение данных из MPU6050
-short readWord(int handle, int reg) {
-    char high = i2cReadByteData(handle, reg);
-    char low = i2cReadByteData(handle, reg + 1);
-    return (high << 8) | (low & 0xFF);
-}
 int isRunning = 1;
 
 RcCar *rcCar = NULL;
