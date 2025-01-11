@@ -92,7 +92,7 @@ void* servoControlThread(void* arg) {
         setServoAngle(servoAngle);
         pthread_mutex_unlock(&servoMutex);
 
-        usleep(20000);  // Задержка 20 мс
+        //usleep(20000);  // Задержка 20 мс
     }
     return NULL;
 }
