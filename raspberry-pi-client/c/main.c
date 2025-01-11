@@ -186,7 +186,7 @@ int main() {
             printf("Значение вне диапазона!\n");
             continue;
         }
-        gpioServo(SERVO_PIN, pulseWidth);
+        gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
         printf("Установлено: %d\n", pulseWidth);
     }
 
