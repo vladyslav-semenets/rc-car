@@ -153,7 +153,6 @@ void processWebSocketEvents(const char *message) {
             }
             break;
             case CHANGE_DEGREE_OF_TURNS:
-            case RESET_TURNS:
             case TURN_TO: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
                 const float degrees = strtof(rawDegrees->valuestring, NULL);
