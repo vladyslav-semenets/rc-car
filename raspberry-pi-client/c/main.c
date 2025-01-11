@@ -20,7 +20,7 @@
 #define GYRO_SENSITIVITY 131.0  // Unit: degrees/sec
 
 // Maximum correction angle for the servo
-#define MAX_CORRECTION_ANGLE 5.0  // In degrees
+#define MAX_CORRECTION_ANGLE 30.0  // In degrees
 
 int isRunning = 1;
 
