@@ -160,6 +160,14 @@ void processWebSocketEvents(const char *message) {
                 turnTo(&degrees);
             }
             break;
+            case RESET_TURNS: {
+                const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
+                const float degrees = strtof(rawDegrees->valuestring, NULL);
+                for (int i = 0; i < 10; i++) {
+                  turnTo(&degrees);
+                }
+            }
+            break;
             case FORWARD:
             case BACKWARD: {
                 const cJSON *rawDegrees = cJSON_GetObjectItem(data, "speed");
