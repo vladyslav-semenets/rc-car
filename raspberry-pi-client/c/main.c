@@ -16,7 +16,7 @@
 #define NEUTRAL_ANGLE 83.0 // Нейтральный угол для серво
 
 float gyroZOffset = 0.0; // Смещение гироскопа
-float scalingFactor = 5.0; // Коэффициент коррекции
+float scalingFactor = 15.0; // Коэффициент коррекции
 float deadZone = 0.5; // Мёртвая зона для фильтрации мелких движений
 
 int isRunning = 1;
