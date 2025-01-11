@@ -121,39 +121,42 @@ int main() {
     setServoAngle(&angle);
     usleep(1000000);
 
+    float previousCorrectionAngle = 0.0;
+
+
     while (isRunning) {
 //        lws_service(webSocketConnection.context, 100);
 
         short gyroZ = readWord(handle, GYRO_ZOUT_H);
         float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
 
-        // Логирование данных гироскопа
-        printf("Gyro Z Raw: %d, Angular Velocity Z: %.2f\n", gyroZ, angularVelocityZ);
-
-        // Рассчитываем угол коррекции
+        // Рассчитываем целевой угол коррекции
         float correctionAngle = 0.0;
         if (fabs(angularVelocityZ) > deadZone) {
-            correctionAngle = -angularVelocityZ * scalingFactor; // Пропорциональная коррекция
+            correctionAngle = -angularVelocityZ * scalingFactor;
         }
 
         // Ограничиваем угол коррекции
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-        // Логирование угла коррекции
-        printf("Correction Angle: %.2f\n", correctionAngle);
+        // Применяем сглаживание
+        float smoothedCorrectionAngle = smoothCorrectionAngle(previousCorrectionAngle, correctionAngle, 0.1f);
+        previousCorrectionAngle = smoothedCorrectionAngle;
 
-        // Применяем коррекцию к углу серво
-        float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
+        // Рассчитываем текущий угол серво
+        float currentServoAngle = NEUTRAL_ANGLE + smoothedCorrectionAngle;
         if (currentServoAngle > 180.0) currentServoAngle = 180.0;
         if (currentServoAngle < 0.0) currentServoAngle = 0.0;
 
-        // Логирование финального угла
-        printf("Servo Angle: %.2f\n", currentServoAngle);
-
+        // Устанавливаем угол серво
         setServoAngle(&currentServoAngle);
 
-        usleep(100000); // Задержка 100 мс
+        // Логирование
+        printf("Gyro Z: %.2f, Smoothed Correction Angle: %.2f, Servo Angle: %.2f\n",
+               angularVelocityZ, smoothedCorrectionAngle, currentServoAngle);
+
+        usleep(50000); // 50 мс
         if (!isRunning) {
             break;
         }
