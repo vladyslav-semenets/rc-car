@@ -72,6 +72,10 @@ void handleSignal(const int signal) {
     }
 }
 
+float smoothCorrectionAngle(float currentAngle, float targetAngle, float smoothingFactor) {
+    return currentAngle + (targetAngle - currentAngle) * smoothingFactor;
+}
+
 int main() {
     if (gpioInitialise() < 0) {
         fprintf(stderr, "pigpio initialization failed\n");
