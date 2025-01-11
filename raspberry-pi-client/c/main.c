@@ -182,7 +182,7 @@ int main() {
 //        lws_service(webSocketConnection.context, 100);
         printf("Введите ширину импульса (500-2500): ");
         scanf("%d", &pulseWidth);
-        if (pulseWidth < MIN_PULSE || pulseWidth > MAX_PULSE) {
+        if (pulseWidth < CAR_TURNS_MIN_PWM || pulseWidth > CAR_TURNS_MAX_PWM) {
             printf("Значение вне диапазона!\n");
             continue;
         }
