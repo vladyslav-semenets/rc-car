@@ -16,7 +16,7 @@
 #define NEUTRAL_ANGLE 83.0 // Нейтральный угол для серво
 
 float gyroZOffset = 0.0; // Смещение гироскопа
-float scalingFactor = 2.0; // Коэффициент коррекции
+float scalingFactor = 5.0; // Коэффициент коррекции
 float deadZone = 0.5; // Мёртвая зона для фильтрации мелких движений
 
 int isRunning = 1;
@@ -145,7 +145,7 @@ int main() {
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
         // Применяем сглаживание
-        float smoothedCorrectionAngle = smoothCorrectionAngle(previousCorrectionAngle, correctionAngle, 0.1f);
+        float smoothedCorrectionAngle = smoothCorrectionAngle(previousCorrectionAngle, correctionAngle, 0.05f);
         previousCorrectionAngle = smoothedCorrectionAngle;
 
         // Рассчитываем текущий угол серво
