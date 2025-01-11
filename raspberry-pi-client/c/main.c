@@ -144,8 +144,8 @@ int main() {
         if (correctionAngle > MAX_CORRECTION_ANGLE) correctionAngle = MAX_CORRECTION_ANGLE;
         if (correctionAngle < -MAX_CORRECTION_ANGLE) correctionAngle = -MAX_CORRECTION_ANGLE;
 
-//        setServoAngle(STEERING_SERVO_PIN, correctionAngle);
-//        usleep(100000);  // 100 ms delay
+        setServoAngle(&correctionAngle);
+        sleep(2);  // 100 ms delay
 
         if (!isRunning) {
             break;
