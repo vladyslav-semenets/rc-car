@@ -118,7 +118,7 @@ void turnTo(const float *degrees) {
 // Thread function for correction logic
 void *correctionThread(void *arg) {
   int handle = *(int *)arg;  // Get the handle from arguments
-  while (true) {
+  while (1) {
     short gyroZ = readWord(handle, GYRO_ZOUT_H);
     float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
     float tempCorrectionAngle = 0.0;
@@ -266,7 +266,7 @@ void processWebSocketEvents(const char *message) {
         }
 
         float angle = 90.0f;
-        setServoAngle(&angle);
+        turnTo(&angle);
         usleep(1000000);
       } break;
       case STEERING_CALIBRATION_OFF: {
