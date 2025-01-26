@@ -170,6 +170,8 @@ void move(const int *speed, const char *direction) {
                                  (CAR_ESC_NEUTRAL_PWM - CAR_ESC_MIN_PWM));
   }
 
+  printf("Moving to pulse width: %d\n", pulseWidth);
+
   gpioServo(CAR_ESC_PIN, pulseWidth);
 }
 
