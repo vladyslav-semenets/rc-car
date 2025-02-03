@@ -10,6 +10,7 @@
 
 static SDL_GameController *controller = NULL;
 struct lws *webSocketInstance = NULL;
+bool isSteeringCalibrationOn = false;
 
 JoystickState *joystickState = NULL;
 
@@ -213,6 +214,24 @@ void resetCameraGimbal() {
     sendWebSocketEvent(payload, webSocketInstance);
 }
 
+void startSteeringCalibration() {
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(data, "action", "steering-calibration-on");
+
+    const char *payload = prepareActionPayload(data);
+
+    sendWebSocketEvent(payload, webSocketInstance);
+}
+
+void stopSteeringCalibration() {
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(data, "action", "steering-calibration-off");
+
+    const char *payload = prepareActionPayload(data);
+
+    sendWebSocketEvent(payload, webSocketInstance);
+}
+
 void init(RcCar *self) {
     int lenSpeed = snprintf(NULL, 0, "%d", self->speed);
     char *speedAsString = malloc(lenSpeed + 1);
@@ -321,6 +340,17 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
             init(self);
         }
 
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
+            if (isSteeringCalibrationOn) {
+                isSteeringCalibrationOn = false;
+                stopSteeringCalibration();
+                return;
+            }
+
+            startSteeringCalibration();
+            isSteeringCalibrationOn = true;
+        }
+
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_LEFTSHOULDER) {
             self->pitchAngle = self->pitchAngle - 1;
             if (self->pitchAngle < -90) {
@@ -382,7 +412,7 @@ void onCloseJoystick() {
 
 RcCar *newRcCar() {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
-    rcCar->degreeOfTurns = 83.0f;
+    rcCar->degreeOfTurns = 90.0f;
     rcCar->speed = 50;
     rcCar->pitchAngle = 0;
     rcCar->setWebSocketInstance = setWebSocketInstance;
