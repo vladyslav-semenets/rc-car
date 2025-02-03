@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "stdbool.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -17,12 +18,13 @@ pid_t mediaMtxPid = -1;
 float gyroZOffset = 0.0;
 float scalingFactor = 15.0;
 float deadZone = 0.5;
+int MPU6050Handle = -1;
 
-// Shared variables between threads
+bool isCarTurning = false;
 float correctionAngle = 0.0;
 float previousCorrectionAngle = 0.0;
-pthread_mutex_t correctionMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_t correctionThreadHandle;
+pthread_mutex_t steeringWheelCorrectionMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_t steeringWheelCorrectionThreadHandle;
 
 typedef enum {
   TURN_TO,
@@ -76,36 +78,31 @@ ActionType getActionType(const char *action) {
   }
 }
 
-// Initialize MPU6050
 void initMPU6050(int handle) {
-  i2cWriteByteData(handle, 0x6B, 0x00);  // Wake up the MPU6050
-  usleep(100000);                        // Wait for initialization
+  i2cWriteByteData(handle, 0x6B, 0x00);
+  usleep(100000);
 }
 
-// Read 16-bit value from MPU6050
-short readWord(int handle, int reg) {
+void deinitMPU6050(int handle) {
+  i2cClose(handle);
+}
+
+short readMPU6050Data(int handle, int reg) {
   int high = i2cReadByteData(handle, reg);
   int low = i2cReadByteData(handle, reg + 1);
   return (short)((high << 8) | low);
 }
 
-// Smooth the correction angle
-float smoothCorrectionAngle(float currentAngle, float targetAngle,
-                            float smoothingFactor) {
-  return currentAngle + (targetAngle - currentAngle) * smoothingFactor;
-}
-
-// Calibration of the gyro
-void calibrateGyro(int handle, int samples) {
-  printf("Calibrating gyro...\n");
+void calibrateMPU6050(int handle, int samples) {
+  printf("MPU6050 Calibrating gyro...\n");
   float sumZ = 0.0;
   for (int i = 0; i < samples; i++) {
-    short gyroZ = readWord(handle, GYRO_ZOUT_H);
+    short gyroZ = readMPU6050Data(handle, GYRO_ZOUT_H);
     sumZ += gyroZ / GYRO_SENSITIVITY;
     usleep(10000);
   }
   gyroZOffset = sumZ / samples;
-  printf("Gyro Z Offset: %.2f\n", gyroZOffset);
+  printf("MPU6050 Gyro Z Offset: %.2f\n", gyroZOffset);
 }
 
 void turnTo(const float *degrees) {
@@ -115,11 +112,15 @@ void turnTo(const float *degrees) {
   gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
 }
 
-// Thread function for correction logic
-void *correctionThread(void *arg) {
-  int handle = *(int *)arg;  // Get the handle from arguments
+void *steeringWheelCorrectionThread(void *arg) {
+  int handle = *(int *)arg;
+
   while (1) {
-    short gyroZ = readWord(handle, GYRO_ZOUT_H);
+    if (isCarTurning) {
+      continue;
+    }
+
+    short gyroZ = readMPU6050Data(handle, GYRO_ZOUT_H);
     float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
     float tempCorrectionAngle = 0.0;
 
@@ -135,9 +136,9 @@ void *correctionThread(void *arg) {
       tempCorrectionAngle = -MAX_CORRECTION_ANGLE;
     }
 
-    pthread_mutex_lock(&correctionMutex);
-    correctionAngle = smoothCorrectionAngle(previousCorrectionAngle,
-                                            tempCorrectionAngle, 0.05f);
+    pthread_mutex_lock(&steeringWheelCorrectionMutex);
+
+    correctionAngle = previousCorrectionAngle + (tempCorrectionAngle - previousCorrectionAngle) * 0.05f;
     previousCorrectionAngle = correctionAngle;
 
     float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
@@ -151,9 +152,10 @@ void *correctionThread(void *arg) {
     }
 
     turnTo(&currentServoAngle);
-    pthread_mutex_unlock(&correctionMutex);
+    pthread_mutex_unlock(&steeringWheelCorrectionMutex);
     usleep(20000);
   }
+
   return NULL;
 }
 
@@ -161,16 +163,10 @@ void move(const int *speed, const char *direction) {
   int pulseWidth = CAR_ESC_NEUTRAL_PWM;
 
   if (strcmp(direction, "forward") == 0) {
-    pulseWidth = (int)floorf(CAR_ESC_NEUTRAL_PWM +
-                             ((float)(*speed) / 100.0f) *
-                                 (CAR_ESC_MAX_PWM - CAR_ESC_NEUTRAL_PWM));
+    pulseWidth = (int)floorf(CAR_ESC_NEUTRAL_PWM + ((float)(*speed) / 100.0f) * (CAR_ESC_MAX_PWM - CAR_ESC_NEUTRAL_PWM));
   } else if (strcmp(direction, "backward") == 0) {
-    pulseWidth = (int)floorf(CAR_ESC_NEUTRAL_PWM -
-                             ((float)(*speed) / 100.0f) *
-                                 (CAR_ESC_NEUTRAL_PWM - CAR_ESC_MIN_PWM));
+    pulseWidth = (int)floorf(CAR_ESC_NEUTRAL_PWM - ((float)(*speed) / 100.0f) * (CAR_ESC_NEUTRAL_PWM - CAR_ESC_MIN_PWM));
   }
-
-  printf("Moving to pulse width: %d\n", pulseWidth);
 
   gpioServo(CAR_ESC_PIN, pulseWidth);
 }
@@ -184,8 +180,7 @@ void startCamera() {
     perror("fork");
     exit(EXIT_FAILURE);
   } else if (mediaMtxPid == 0) {
-    execlp(getenv("MEDIAMTX_BIN_PATH"), "mediamtx",
-           getenv("MEDIAMTX_CONFIG_PATH"), NULL);
+    execlp(getenv("MEDIAMTX_BIN_PATH"), "mediamtx", getenv("MEDIAMTX_CONFIG_PATH"), NULL);
     perror("execlp");
     exit(EXIT_FAILURE);
   }
@@ -213,18 +208,12 @@ void initCameraGimbal() {
 }
 
 void cameraGimbalSetYaw(const float *degrees) {
-  const int pulseWidth =
-      (int)floorf(((*degrees + 90) / 180.0f) *
-                      (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) +
-                  CAR_CAMERA_GIMBAL_MIN_PMW);
+  const int pulseWidth = (int)floorf(((*degrees + 90) / 180.0f) * (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) + CAR_CAMERA_GIMBAL_MIN_PMW);
   gpioServo(CAR_CAMERA_GIMBAL_PIN4, pulseWidth);
 }
 
 void cameraGimbalSetPitch(const float *degrees) {
-  const int pulseWidth =
-      (int)floorf(((*degrees + 90) / 180.0f) *
-                      (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) +
-                  CAR_CAMERA_GIMBAL_MIN_PMW);
+  const int pulseWidth = (int)floorf(((*degrees + 90) / 180.0f) * (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) + CAR_CAMERA_GIMBAL_MIN_PMW);
   gpioServo(CAR_CAMERA_GIMBAL_PIN3, pulseWidth);
 }
 
@@ -243,28 +232,29 @@ void processWebSocketEvents(const char *message) {
         initCameraGimbal();
       } break;
       case CHANGE_DEGREE_OF_TURNS:
-      case RESET_TURNS:
       case TURN_TO: {
         const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
         const float degrees = strtof(rawDegrees->valuestring, NULL);
+        isCarTurning = true;
+        turnTo(&degrees);
+      } break;
+      case RESET_TURNS: {
+        const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
+        const float degrees = strtof(rawDegrees->valuestring, NULL);
+        isCarTurning = false;
         turnTo(&degrees);
       } break;
       case STEERING_CALIBRATION_ON: {
-        // Open I2C connection to MPU6050
-        int handle = i2cOpen(1, MPU6050_ADDRESS, 0);
-        if (handle < 0) {
-          printf("Failed to open I2C connection\n");
+        MPU6050Handle = i2cOpen(1, MPU6050_ADDRESS, 0);
+        if (MPU6050Handle < 0) {
+          printf("MPU6050 Failed to open I2C connection\n");
         }
 
-        // Initialize MPU6050
-        initMPU6050(handle);
+        initMPU6050(MPU6050Handle);
+        calibrateMPU6050(MPU6050Handle, 100);
 
-        // Calibration offset for gyroscope bias
-        calibrateGyro(handle, 100);
-
-        if (pthread_create(&correctionThreadHandle, NULL, correctionThread,
-                         &handle) != 0) {
-          printf("Failed to create correction thread\n");
+        if (pthread_create(&steeringWheelCorrectionThreadHandle, NULL, steeringWheelCorrectionThread, &MPU6050Handle) != 0) {
+          printf("MPU6050 Failed to create correction thread\n");
         }
 
         float angle = 90.0f;
@@ -272,7 +262,8 @@ void processWebSocketEvents(const char *message) {
         usleep(1000000);
       } break;
       case STEERING_CALIBRATION_OFF: {
-        pthread_cancel(correctionThreadHandle);
+        deinitMPU6050(MPU6050Handle);
+        pthread_cancel(steeringWheelCorrectionThreadHandle);
       } break;
       case FORWARD:
       case BACKWARD: {
