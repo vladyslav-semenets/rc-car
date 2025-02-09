@@ -172,6 +172,11 @@ void move(const int *speed, const char *direction) {
 }
 
 void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
+void enableDisableEsc() {
+  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+  usleep(5000000);
+  gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+}
 
 void startCamera() {
   mediaMtxPid = fork();
@@ -228,6 +233,7 @@ void processWebSocketEvents(const char *message) {
         const cJSON *rawDegrees = cJSON_GetObjectItem(data, "degrees");
         const float degrees = strtof(rawDegrees->valuestring, NULL);
         turnTo(&degrees);
+        enableDisableEsc();
         setEscToNeutralPosition();
         initCameraGimbal();
       } break;
