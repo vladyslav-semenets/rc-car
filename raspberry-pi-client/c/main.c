@@ -21,6 +21,7 @@ void handleSignal(const int signal) {
             isRunning = 0;
             closeWebSocketServer();
             free(rcCar);
+            gpioWrite(CAR_ESC_ENABLE_PIN, 0);
             gpioTerminate();
             exit(0);
         default:
