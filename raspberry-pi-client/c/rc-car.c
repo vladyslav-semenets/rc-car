@@ -174,20 +174,24 @@ void move(const int *speed, const char *direction) {
 void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
 
 void enableDisableEsc() {
-  // Try both HIGH and LOW, depending on relay type
-  gpioWrite(CAR_ESC_ENABLE_PIN, 1);  // If active-low, this turns relay OFF
-  // gpioWrite(RELAY_PIN, 0); // Uncomment this if relay is active-high
-  printf("Relay set to default OFF state\n");
+  // Set relay pin as output (controlling ESC power)
+  gpioWrite(CAR_ESC_ENABLE_PIN, 0); // Ensure ESC is OFF initially
+  printf("ESC is OFF\n");
 
-  sleep(2);  // Wait for 2 seconds
+  // Set ESC PWM pin as output
+  gpioSetMode(CAR_ESC_PIN, PI_OUTPUT);
 
-  // Toggle relay state
-  gpioWrite(CAR_ESC_ENABLE_PIN, 0);  // If active-low, this turns relay ON
-  // gpioWrite(RELAY_PIN, 1); // Uncomment this if relay is active-high
-  printf("Relay ON\n");
-//  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
-//  usleep(5000000);
-//  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+  // Send neutral PWM signal (1500 µs)
+  gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM);
+  printf("Neutral PWM sent\n");
+
+  sleep(1);  // Small delay before enabling ESC
+
+  // Turn ON the ESC via relay
+  gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+  printf("ESC is ON\n");
+
+  sleep(5);
 }
 
 void startCamera() {
@@ -246,7 +250,7 @@ void processWebSocketEvents(const char *message) {
         const float degrees = strtof(rawDegrees->valuestring, NULL);
         turnTo(&degrees);
         enableDisableEsc();
-        setEscToNeutralPosition();
+//        setEscToNeutralPosition();
         initCameraGimbal();
       } break;
       case CHANGE_DEGREE_OF_TURNS:
