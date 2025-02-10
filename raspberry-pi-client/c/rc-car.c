@@ -175,8 +175,8 @@ void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
 
 void enableDisableEsc() {
   gpioWrite(CAR_ESC_ENABLE_PIN, 1);
-  usleep(5000000);
-  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+//  usleep(5000000);
+//  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
 }
 
 void startCamera() {
