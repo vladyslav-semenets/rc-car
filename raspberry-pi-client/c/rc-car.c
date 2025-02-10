@@ -176,10 +176,10 @@ void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
 void enableDisableEsc() {
   gpioWrite(CAR_ESC_ENABLE_PIN, 0);
   printf("[ESC] OFF\n");
-  sleep(5);
-  gpioWrite(CAR_ESC_ENABLE_PIN, 1);
-  printf("[ESC] is ON\n");
-  sleep(5);
+//  sleep(5);
+//  gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+//  printf("[ESC] is ON\n");
+//  sleep(5);
 }
 
 void startCamera() {
