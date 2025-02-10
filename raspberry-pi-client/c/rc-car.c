@@ -178,9 +178,6 @@ void enableDisableEsc() {
   gpioWrite(CAR_ESC_ENABLE_PIN, 0); // Ensure ESC is OFF initially
   printf("ESC is OFF\n");
 
-  // Set ESC PWM pin as output
-  gpioSetMode(CAR_ESC_PIN, PI_OUTPUT);
-
   // Send neutral PWM signal (1500 µs)
   gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM);
   printf("Neutral PWM sent\n");
