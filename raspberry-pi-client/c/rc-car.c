@@ -174,7 +174,18 @@ void move(const int *speed, const char *direction) {
 void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
 
 void enableDisableEsc() {
-  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+  // Try both HIGH and LOW, depending on relay type
+  gpioWrite(CAR_ESC_ENABLE_PIN, 1);  // If active-low, this turns relay OFF
+  // gpioWrite(RELAY_PIN, 0); // Uncomment this if relay is active-high
+  printf("Relay set to default OFF state\n");
+
+  sleep(2);  // Wait for 2 seconds
+
+  // Toggle relay state
+  gpioWrite(CAR_ESC_ENABLE_PIN, 0);  // If active-low, this turns relay ON
+  // gpioWrite(RELAY_PIN, 1); // Uncomment this if relay is active-high
+  printf("Relay ON\n");
+//  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
 //  usleep(5000000);
 //  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
 }
