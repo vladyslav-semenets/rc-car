@@ -174,21 +174,11 @@ void move(const int *speed, const char *direction) {
 void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
 
 void enableDisableEsc() {
-  // Set relay pin as output (controlling ESC power)
-  gpioWrite(CAR_ESC_ENABLE_PIN, 0); // Ensure ESC is OFF initially
-  printf("ESC is OFF\n");
-
-  // Send neutral PWM signal (1500 µs)
-  gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM);
-  printf("Neutral PWM sent\n");
-
-  sleep(1);  // Small delay before enabling ESC
-
-  // Turn ON the ESC via relay
+  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+  printf("[ESC] OFF\n");
+  sleep(1);
   gpioWrite(CAR_ESC_ENABLE_PIN, 1);
-  printf("ESC is ON\n");
-
-  sleep(5);
+  printf("[ESC] is ON\n");
 }
 
 void startCamera() {
