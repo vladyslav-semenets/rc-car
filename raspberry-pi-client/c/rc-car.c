@@ -174,12 +174,12 @@ void move(const int *speed, const char *direction) {
 void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
 
 void enableDisableEsc() {
-  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+  gpioWrite(CAR_ESC_ENABLE_PIN, 1);
   printf("[ESC] OFF\n");
-//  sleep(5);
-//  gpioWrite(CAR_ESC_ENABLE_PIN, 1);
-//  printf("[ESC] is ON\n");
-//  sleep(5);
+  sleep(5);
+  gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+  printf("[ESC] is ON\n");
+  sleep(5);
 }
 
 void startCamera() {
@@ -238,7 +238,7 @@ void processWebSocketEvents(const char *message) {
         const float degrees = strtof(rawDegrees->valuestring, NULL);
         turnTo(&degrees);
         enableDisableEsc();
-//        setEscToNeutralPosition();
+        setEscToNeutralPosition();
         initCameraGimbal();
       } break;
       case CHANGE_DEGREE_OF_TURNS:
