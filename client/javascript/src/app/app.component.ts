@@ -322,7 +322,6 @@ export class AppComponent implements OnInit {
 				if (event.detail.name === 'LEFT_ANALOG_STICK') {
 					this.resetTurns();
 				}
-
 			},
 		);
 
@@ -333,6 +332,7 @@ export class AppComponent implements OnInit {
 				}
 			},
 		);
+
 		fromEvent<IControllerEvent>(window, 'gc.button.hold').pipe(
 			filter((event: IControllerEvent) => event.detail.name === 'RIGHT_SHOULDER_BOTTOM'),
 			map((event: IControllerEvent) => this.buttonValueToCarSpeed(event.detail.value)),
