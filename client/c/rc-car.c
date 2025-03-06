@@ -48,6 +48,32 @@ char* prepareActionPayload(cJSON *data) {
     return jsonString;
 }
 
+int prepareSpeedBaseOnSelectedTransmissionSpeed(RcCar *self, const int *speed) {
+    if (!self || !speed) {
+        return 0;
+    }
+
+    static const struct {
+        int level;
+        int maxSpeed;
+    } speedLimits[] = {
+        { FIRST_TRANSMISSION_SPEED, 20 },
+        { SECOND_TRANSMISSION_SPEED, 35 },
+        { THIRD_TRANSMISSION_SPEED, 45 },
+        { FIFTH_TRANSMISSION_SPEED, 65 },
+        { SIXTH_TRANSMISSION_SPEED, 85 },
+        { EIGHTH_TRANSMISSION_SPEED, 100 }
+    };
+
+    for (size_t i = 0; i < sizeof(speedLimits) / sizeof(speedLimits[0]); i++) {
+        if (self->transmissionSpeed == speedLimits[i].level && *speed > speedLimits[i].maxSpeed) {
+            return speedLimits[i].maxSpeed;
+        }
+    }
+
+    return *speed;
+}
+
 void changDegreeOfTurns(RcCar *self) {
     int len = snprintf(NULL, 0, "%f", self->degreeOfTurns);
     char *axisXDegreesAsString = malloc(len + 1);
@@ -103,8 +129,8 @@ void turnCar(const float *degrees) {
     free(axisXDegreesAsString);
 }
 
-void forward(const int *speed) {
-    int speedValue = *speed;
+void forward(RcCar *self, const int *speed) {
+    int speedValue = prepareSpeedBaseOnSelectedTransmissionSpeed(self, speed);
     int len = snprintf(NULL, 0, "%d", speedValue);
     char *speedAsString = malloc(len + 1);
     snprintf(speedAsString, len + 1, "%d", speedValue);
@@ -312,7 +338,7 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
 
             if (value > 1000) {
                 const int speed = buttonValueToSpeed(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
-                forward(&speed);
+                forward(self, &speed);
             }
         }
 
@@ -338,6 +364,20 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
     } else if (e->type == SDL_CONTROLLERBUTTONDOWN) {
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
             init(self);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_RIGHTSTICK) {
+            if (self->transmissionSpeed >= EIGHTH_TRANSMISSION_SPEED) {
+                return;
+            }
+            self->transmissionSpeed = self->transmissionSpeed + 1;
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_LEFTSTICK) {
+            if (self->transmissionSpeed <= FIRST_TRANSMISSION_SPEED) {
+                return;
+            }
+            self->transmissionSpeed = self->transmissionSpeed - 1;
         }
 
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
@@ -414,6 +454,7 @@ RcCar *newRcCar() {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
     rcCar->degreeOfTurns = 90.0f;
     rcCar->speed = 50;
+    rcCar->transmissionSpeed = 1;
     rcCar->pitchAngle = 0;
     rcCar->setWebSocketInstance = setWebSocketInstance;
     rcCar->setControllerInstance = setControllerInstance;

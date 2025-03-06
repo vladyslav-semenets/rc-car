@@ -5,6 +5,15 @@
 
 #define JOYSTICK_DEADZONE 3000
 #define JOYSTICK_MAX_AXIS_VALUE 32768
+#define FIRST_TRANSMISSION_SPEED 1
+#define SECOND_TRANSMISSION_SPEED 2
+#define THIRD_TRANSMISSION_SPEED 3
+#define FOURTH_TRANSMISSION_SPEED 4
+#define FIFTH_TRANSMISSION_SPEED 5
+#define SIXTH_TRANSMISSION_SPEED 6
+#define SEVENTH_TRANSMISSION_SPEED 7
+#define EIGHTH_TRANSMISSION_SPEED 8
+
 
 struct CommonActionPayload {
     char *to;
@@ -42,6 +51,7 @@ typedef struct RcCar {
     float degreeOfTurns;
     int pitchAngle;
     int speed;
+    int transmissionSpeed;
     void (*init)(struct RcCar *self);
     void (*resetCameraGimbal)(struct RcCar *self);
     void (*cameraGimbalTurn)(struct RcCar *self, const float *degrees);
