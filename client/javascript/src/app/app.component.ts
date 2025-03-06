@@ -1,9 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { MatButton } from "@angular/material/button";
-import { MatIcon } from "@angular/material/icon";
 import { AppService } from "./app.service";
-import { MatSlider, MatSliderThumb } from '@angular/material/slider';
 import { FormsModule } from '@angular/forms';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { NgIf } from '@angular/common';
@@ -29,10 +26,6 @@ interface IControllerEvent extends Event {
     selector: 'app-root',
     imports: [
         RouterOutlet,
-        MatButton,
-        MatIcon,
-        MatSlider,
-        MatSliderThumb,
         FormsModule,
         MatCard,
         MatCardContent,
