@@ -26,22 +26,21 @@ interface IControllerEvent extends Event {
 }
 
 @Component({
-	selector: 'app-root',
-	standalone: true,
-	imports: [
-		RouterOutlet,
-		MatButton,
-		MatIcon,
-		MatSlider,
-		MatSliderThumb,
-		FormsModule,
-		MatCard,
-		MatCardContent,
-		NgIf,
-		MatProgressSpinner,
-	],
-	templateUrl: './app.component.html',
-	styleUrl: './app.component.scss'
+    selector: 'app-root',
+    imports: [
+        RouterOutlet,
+        MatButton,
+        MatIcon,
+        MatSlider,
+        MatSliderThumb,
+        FormsModule,
+        MatCard,
+        MatCardContent,
+        NgIf,
+        MatProgressSpinner,
+    ],
+    templateUrl: './app.component.html',
+    styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
 	direction: unknown;
