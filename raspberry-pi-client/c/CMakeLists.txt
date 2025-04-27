@@ -13,7 +13,6 @@ set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
 find_library(PIGPIO_LIBRARY pigpio REQUIRED)
 
 include_directories(/opt/homebrew/include /usr/include client/c/libs/env)
-include_directories(${GPS_INCLUDE_DIRS})
 link_directories(/opt/homebrew/lib /usr/lib client/c/libs/env)
 
 # Add the executable
