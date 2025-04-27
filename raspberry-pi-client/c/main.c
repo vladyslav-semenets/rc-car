@@ -13,7 +13,7 @@ int isRunning = 1;
 
 RcCar *rcCar = NULL;
 pthread_t sendGpsDataThread;
-struct gps_data_t gpsData = NULL;
+struct gps_data_t gpsData;
 
 // Signal handling for clean shutdown
 void handleSignal(const int signal) {
