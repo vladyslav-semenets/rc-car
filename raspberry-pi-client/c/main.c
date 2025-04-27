@@ -44,7 +44,7 @@ void *sendGpsData(void *arg) {
         while (true) {
             if (gps_waiting(&gps_data, 5000000)) {
                 if (gps_read(&gps_data, NULL, 0) > 0) {
-                    if ((gps_data.status == STATUS_FIX) &&
+                    if ((gps_data.fix.status == STATUS_FIX) &&
                         (gps_data.fix.mode >= MODE_2D)) {
 
                         printf("Speed: %.2f m/s\n", gps_data.fix.speed);
