@@ -14,6 +14,12 @@ int isRunning = 1;
 RcCar *rcCar = NULL;
 pthread_t sendGpsDataThread;
 struct gps_data_t gpsData;
+static char *mode_str[MODE_STR_NUM] = {
+    "n/a",
+    "None",
+    "2D",
+    "3D"
+};
 
 // Signal handling for clean shutdown
 void handleSignal(const int signal) {
