@@ -13,7 +13,7 @@ int isRunning = 1;
 
 RcCar *rcCar = NULL;
 pthread_t sendGpsDataThread;
-
+struct gpsData_t gpsData;
 
 // Signal handling for clean shutdown
 void handleSignal(const int signal) {
@@ -27,6 +27,8 @@ void handleSignal(const int signal) {
             gpioWrite(CAR_ESC_ENABLE_PIN, 1);
             gpioTerminate();
             pthread_cancel(sendGpsDataThread);
+            gps_stream(&gpsData, WATCH_DISABLE, NULL);
+            gps_close(&gpsData);
             exit(0);
         default:
             break;
@@ -36,21 +38,17 @@ void handleSignal(const int signal) {
 void *sendGpsData(void *arg) {
     struct lws *webSocketInstance = (struct lws *)arg;
 
-    struct gps_data_t gps_data;
+    if (gps_open("localhost", "2947", &gpsData) == 0) {
+        gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, NULL);
 
-    if (gps_open("localhost", "2947", &gps_data) == 0) {
-        gps_stream(&gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
-
-        while (true) {
-            if (gps_waiting(&gps_data, 5000000)) {
-                if (gps_read(&gps_data, NULL, 0) > 0) {
-                    if ((gps_data.fix.status == STATUS_FIX) &&
-                        (gps_data.fix.mode >= MODE_2D)) {
-
-                        printf("Speed: %.2f m/s\n", gps_data.fix.speed);
-                        printf("Satellites used: %d\n", gps_data.satellites_used);
-                        printf("Latitude: %f\n", gps_data.fix.latitude);
-                        printf("Longitude: %f\n", gps_data.fix.longitude);
+        while (isRunning) {
+            if (gps_waiting(&gpsData, 5000000)) {
+                if (gps_read(&gpsData, NULL, 0) > 0) {
+                    if (gpsData.fix.status == STATUS_FIX && gpsData.fix.mode >= MODE_2D) {
+                        printf("Speed: %.2f m/s\n", gpsData.fix.speed);
+                        printf("Satellites used: %d\n", gpsData.satellites_used);
+                        printf("Latitude: %f\n", gpsData.fix.latitude);
+                        printf("Longitude: %f\n", gpsData.fix.longitude);
                         } else {
                             printf("No fix yet...\n");
                         }
@@ -58,8 +56,6 @@ void *sendGpsData(void *arg) {
             }
             usleep(500000);
         }
-        gps_stream(&gps_data, WATCH_DISABLE, NULL);
-        gps_close(&gps_data);
     } else {
         printf("Failed to open GPS.\n");
     }
