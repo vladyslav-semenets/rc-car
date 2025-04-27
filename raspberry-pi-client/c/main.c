@@ -38,7 +38,7 @@ void handleSignal(const int signal) {
 void *sendGpsData(void *arg) {
     struct lws *webSocketInstance = (struct lws *)arg;
 
-    if (gps_open("localhost", "2947", &gpsData) == 0) {
+    if (gps_open("/dev/ttyACM0", NULL, &gpsData) == 0) {
         gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, NULL);
 
         while (isRunning) {
