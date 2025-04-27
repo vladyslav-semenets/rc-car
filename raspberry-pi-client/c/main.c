@@ -50,7 +50,7 @@ void *sendGpsData(void *arg) {
                         printf("Latitude: %f\n", gpsData.fix.latitude);
                         printf("Longitude: %f\n", gpsData.fix.longitude);
                         } else {
-                            printf("No fix yet...\n");
+                            printf("No fix yet... %s \n" gpsData.fix.status);
                         }
                 }
             }
