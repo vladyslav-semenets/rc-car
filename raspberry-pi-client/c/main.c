@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pigpio.h>
+#include <math.h>
 #include "libs/env/dotenv.h"
 #include "websocket.h"
 #include "rc-car.h"
