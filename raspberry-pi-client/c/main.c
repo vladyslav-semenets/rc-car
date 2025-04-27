@@ -38,28 +38,44 @@ void handleSignal(const int signal) {
 void *sendGpsData(void *arg) {
     struct lws *webSocketInstance = (struct lws *)arg;
 
-    if (gps_open("localhost", "2947", &gpsData) == 0) {
-        gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, NULL);
+    if (0 != gps_open("localhost", "2947", &gpsData)) {
+        printf("Open error.  Bye, bye\n");
+        return 1;
+    }
 
-        while (isRunning) {
-            if (gps_waiting(&gpsData, 10000000)) {
-                if (gps_read(&gpsData, NULL, 0) > 0) {
-                    printf("Number of satellites: %d\n", gpsData.satellites_used);
+    (void)gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, NULL);
 
-                    if (gpsData.fix.status == STATUS_FIX && gpsData.fix.mode >= MODE_2D) {
-                        printf("Speed: %.2f m/s\n", gpsData.fix.speed);
-                        printf("Satellites used: %d\n", gpsData.satellites_used);
-                        printf("Latitude: %f\n", gpsData.fix.latitude);
-                        printf("Longitude: %f\n", gpsData.fix.longitude);
-                        } else {
-                            printf("No fix yet... %s \n", gpsData.fix.mode);
-                        }
-                }
-            }
-            usleep(500000);
+    while (gps_waiting(&gpsData, 5000000)) {
+        if (-1 == gps_read(&gpsData, NULL, 0)) {
+            printf("Read error.  Bye, bye\n");
+            break;
         }
-    } else {
-        printf("Failed to open GPS.\n");
+        if (MODE_SET != (MODE_SET & gpsData.set)) {
+            // did not even get mode, nothing to see here
+            continue;
+        }
+        if (0 > gpsData.fix.mode ||
+            MODE_STR_NUM <= gpsData.fix.mode) {
+            gpsData.fix.mode = 0;
+            }
+        printf("Fix mode: %s (%d) Time: ",
+               mode_str[gpsData.fix.mode],
+               gpsData.fix.mode);
+        if (TIME_SET == (TIME_SET & gpsData.set)) {
+            // not 32 bit safe
+            printf("%ld.%09ld ", gpsData.fix.time.tv_sec,
+                   gpsData.fix.time.tv_nsec);
+        } else {
+            puts("n/a ");
+        }
+        if (isfinite(gpsData.fix.latitude) &&
+            isfinite(gpsData.fix.longitude)) {
+            // Display data from the GPS receiver if valid.
+            printf("Lat %.6f Lon %.6f\n",
+                   gpsData.fix.latitude, gpsData.fix.longitude);
+            } else {
+                printf("Lat n/a Lon n/a\n");
+            }
     }
 }
 
