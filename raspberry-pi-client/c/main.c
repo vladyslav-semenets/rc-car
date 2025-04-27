@@ -44,11 +44,11 @@ void *sendGpsData(void *arg) {
         while (isRunning) {
             if (gps_waiting(&gpsData, 5000000)) {
                 if (gps_read(&gpsData, NULL, 0) > 0) {
-                    if (gpsData.fix.status == STATUS_FIX && gpsData.fix.mode >= MODE_2D) {
-                        printf("Speed: %.2f m/s\n", gpsData.fix.speed);
-                        printf("Satellites used: %d\n", gpsData.satellites_used);
-                        printf("Latitude: %f\n", gpsData.fix.latitude);
-                        printf("Longitude: %f\n", gpsData.fix.longitude);
+                    if (gpsData->fix.status == STATUS_FIX && gpsData->fix.mode >= MODE_2D) {
+                        printf("Speed: %.2f m/s\n", gpsData->fix.speed);
+                        printf("Satellites used: %d\n", gpsData->satellites_used);
+                        printf("Latitude: %f\n", gpsData->fix.latitude);
+                        printf("Longitude: %f\n", gpsData->fix.longitude);
                         } else {
                             printf("No fix yet...\n");
                         }
