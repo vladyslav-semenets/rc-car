@@ -90,7 +90,7 @@ void *sendGpsData(void *arg) {
             char *jsonString = cJSON_Print(base);
             cJSON_Delete(base);
 
-            sendWebSocketEvent(jsonString);
+            sendWebSocketEvent(jsonString, webSocketInstance);
             printf("[GPS] send data over websocket\n");
         } else {
             printf("[GPS] Lat n/a Lon n/a \n");
