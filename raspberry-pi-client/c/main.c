@@ -22,8 +22,10 @@ static char *mode_str[MODE_STR_NUM] = {
     "2D",
     "3D"
 };
+struct CommonActionPayload {
+    char *to;
+};
 
-// Signal handling for clean shutdown
 void handleSignal(const int signal) {
     switch (signal) {
         case SIGINT:
@@ -55,35 +57,44 @@ void *sendGpsData(void *arg) {
 
     while (gps_waiting(&gpsData, 5000000)) {
         if (-1 == gps_read(&gpsData, NULL, 0)) {
-            printf("Read error.  Bye, bye\n");
+            printf("[GPS] Read error\n");
             break;
         }
         if (MODE_SET != (MODE_SET & gpsData.set)) {
-            // did not even get mode, nothing to see here
             continue;
         }
-        if (0 > gpsData.fix.mode ||
-            MODE_STR_NUM <= gpsData.fix.mode) {
+
+        if (gpsData.fix.mode > 0 || MODE_STR_NUM <= gpsData.fix.mode) {
             gpsData.fix.mode = 0;
-            }
-        printf("Fix mode: %s (%d) Time: ",
-               mode_str[gpsData.fix.mode],
-               gpsData.fix.mode);
+        }
+
+        printf("[GPS] Fix mode: %s (%d) Time: ", mode_str[gpsData.fix.mode], gpsData.fix.mode);
+
         if (TIME_SET == (TIME_SET & gpsData.set)) {
-            // not 32 bit safe
-            printf("%ld.%09ld ", gpsData.fix.time.tv_sec,
-                   gpsData.fix.time.tv_nsec);
+            printf("[GPS] %ld.%09ld ", gpsData.fix.time.tv_sec, gpsData.fix.time.tv_nsec);
         } else {
             puts("n/a ");
         }
-        if (isfinite(gpsData.fix.latitude) &&
-            isfinite(gpsData.fix.longitude)) {
-            // Display data from the GPS receiver if valid.
-            printf("Lat %.6f Lon %.6f\n",
-                   gpsData.fix.latitude, gpsData.fix.longitude);
-            } else {
-                printf("Lat n/a Lon n/a\n");
-            }
+
+        if (isfinite(gpsData.fix.latitude) && isfinite(gpsData.fix.longitude)) {
+            struct CommonActionPayload actionPayload;
+            actionPayload.to = "rc-car-client-map";
+
+            cJSON *base = cJSON_CreateObject();
+
+            cJSON_AddStringToObject(base, "to", actionPayload.to);
+            cJSON_AddItemToObject(base, "latitude", gpsData.fix.latitude);
+            cJSON_AddItemToObject(base, "longitude", gpsData.fix.longitude);
+            cJSON_AddItemToObject(base, "speed", gpsData.fix.speed);
+
+            char *jsonString = cJSON_Print(base);
+            cJSON_Delete(base);
+
+            sendWebSocketEvent(jsonString);
+            printf("[GPS] send data over websocket\n");
+        } else {
+            printf("[GPS] Lat n/a Lon n/a \n");
+        }
     }
 }
 
