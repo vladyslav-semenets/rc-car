@@ -8,6 +8,7 @@
 #include "rc-car.h"
 #include <gps.h>
 #include <pthread.h>
+#define MODE_STR_NUM 4
 
 int isRunning = 1;
 
