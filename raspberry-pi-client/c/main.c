@@ -83,10 +83,22 @@ void *sendGpsData(void *arg) {
 
             cJSON *base = cJSON_CreateObject();
 
+            int latitudeLength = snprintf(NULL, 0, "%f", gpsData.fix.latitude);
+            char *latitudeAsString = malloc(latitudeLength + 1);
+            snprintf(latitudeAsString, latitudeLength + 1, "%f", gpsData.fix.latitude);
+
+            int longitudeLength = snprintf(NULL, 0, "%f", gpsData.fix.longitude);
+            char *longitudeAsString = malloc(longitudeLength + 1);
+            snprintf(longitudeAsString, longitudeLength + 1, "%f", gpsData.fix.longitude);
+
+            int speedLength = snprintf(NULL, 0, "%f", gpsData.fix.speed);
+            char *speedAsString = malloc(speedLength + 1);
+            snprintf(speedAsString, speedLength + 1, "%f", gpsData.fix.speed);
+
             cJSON_AddStringToObject(base, "to", actionPayload.to);
-            cJSON_AddItemToObject(base, "latitude", gpsData.fix.latitude);
-            cJSON_AddItemToObject(base, "longitude", gpsData.fix.longitude);
-            cJSON_AddItemToObject(base, "speed", gpsData.fix.speed);
+            cJSON_AddStringToObject(base, "latitude", latitudeAsString);
+            cJSON_AddStringToObject(base, "longitude", longitudeAsString);
+            cJSON_AddStringToObject(base, "speed", speedAsString);
 
             char *jsonString = cJSON_Print(base);
             cJSON_Delete(base);
