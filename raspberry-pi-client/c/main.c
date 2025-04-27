@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <pigpio.h>
 #include <math.h>
+#include <cjson/cJSON.h>
 #include "libs/env/dotenv.h"
 #include "websocket.h"
 #include "rc-car.h"
