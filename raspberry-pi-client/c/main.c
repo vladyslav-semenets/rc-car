@@ -42,7 +42,7 @@ void *sendGpsData(void *arg) {
         gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, NULL);
 
         while (isRunning) {
-            if (gps_waiting(&gpsData, 5000000)) {
+            if (gps_waiting(&gpsData, 10000000)) {
                 if (gps_read(&gpsData, NULL, 0) > 0) {
                     if (gpsData.fix.status == STATUS_FIX && gpsData.fix.mode >= MODE_2D) {
                         printf("Speed: %.2f m/s\n", gpsData.fix.speed);
