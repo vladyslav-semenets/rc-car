@@ -44,6 +44,8 @@ void *sendGpsData(void *arg) {
         while (isRunning) {
             if (gps_waiting(&gpsData, 10000000)) {
                 if (gps_read(&gpsData, NULL, 0) > 0) {
+                    printf("Number of satellites: %d\n", gpsData.satellites_used);
+
                     if (gpsData.fix.status == STATUS_FIX && gpsData.fix.mode >= MODE_2D) {
                         printf("Speed: %.2f m/s\n", gpsData.fix.speed);
                         printf("Satellites used: %d\n", gpsData.satellites_used);
