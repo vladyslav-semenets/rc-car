@@ -42,19 +42,27 @@ void *sendGpsData(void *arg) {
         gps_stream(&gpsData, WATCH_ENABLE | WATCH_JSON, NULL);
 
         while (isRunning) {
+            // Wait for data from the GPS device (timeout is set to 5 seconds)
             if (gps_waiting(&gpsData, 5000000)) {
+                // Read the data
                 if (gps_read(&gpsData, NULL, 0) > 0) {
-                    if (gpsData.fix.status == STATUS_FIX && gpsData.fix.mode >= MODE_2D) {
-                        printf("Speed: %.2f m/s\n", gpsData.fix.speed);
-                        printf("Satellites used: %d\n", gpsData.satellites_used);
+                    // Check if GPS data is valid
+                    if (gpsData.fix.status == STATUS_FIX) {
+                        printf("Successfully connected to GPS.\n");
                         printf("Latitude: %f\n", gpsData.fix.latitude);
                         printf("Longitude: %f\n", gpsData.fix.longitude);
-                        } else {
-                            printf("No fix yet... %s \n", gpsData.fix.status);
-                        }
+                        printf("Speed: %.2f m/s\n", gpsData.fix.speed);
+                        printf("Satellites used: %d\n", gpsData.satellites_used);
+                    } else {
+                        printf("No valid GPS fix yet...\n");
+                    }
+                } else {
+                    fprintf(stderr, "Failed to read GPS data.\n");
                 }
+            } else {
+                printf("GPS waiting timeout reached.\n");
             }
-            usleep(500000);
+            usleep(1000000); // Sleep for 1 second
         }
     } else {
         printf("Failed to open GPS.\n");
