@@ -15,7 +15,7 @@
 int isRunning = 1;
 
 RcCar *rcCar = NULL;
-pthread_t sendGpsDataThread;
+pthread_t sendCarGpsDataThread;
 struct gps_data_t gpsData;
 static char *mode_str[MODE_STR_NUM] = {
     "n/a",
@@ -37,7 +37,7 @@ void handleSignal(const int signal) {
             free(rcCar);
             gpioWrite(CAR_ESC_ENABLE_PIN, 1);
             gpioTerminate();
-            pthread_cancel(sendGpsDataThread);
+            pthread_cancel(sendCarGpsDataThread);
             gps_stream(&gpsData, WATCH_DISABLE, NULL);
             gps_close(&gpsData);
             exit(0);
@@ -46,7 +46,7 @@ void handleSignal(const int signal) {
     }
 }
 
-void *sendGpsData(void *arg) {
+void *sendCarGpsData(void *arg) {
     struct lws *webSocketInstance = (struct lws *)arg;
 
     if (0 != gps_open("localhost", "2947", &gpsData)) {
@@ -74,7 +74,7 @@ void *sendGpsData(void *arg) {
         if (TIME_SET == (TIME_SET & gpsData.set)) {
             printf("[GPS] %ld.%09ld ", gpsData.fix.time.tv_sec, gpsData.fix.time.tv_nsec);
         } else {
-            puts("n/a ");
+            puts("[GPS] n/a ");
         }
 
         if (isfinite(gpsData.fix.latitude) && isfinite(gpsData.fix.longitude)) {
@@ -104,7 +104,9 @@ void *sendGpsData(void *arg) {
             cJSON_Delete(base);
 
             sendWebSocketEvent(jsonString, webSocketInstance);
-            printf("[GPS] send data over websocket\n");
+            free(latitudeAsString);
+            free(longitudeAsString);
+            free(speedAsString);
         } else {
             printf("[GPS] Lat n/a Lon n/a \n");
         }
@@ -132,7 +134,7 @@ int main() {
     struct sigaction sa;
     WebSocketConnection webSocketConnection = connectToWebSocketServer();
 
-    pthread_create(&sendGpsDataThread, NULL, sendGpsData, webSocketConnection.wsi);
+    pthread_create(&sendCarGpsDataThread, NULL, sendCarGpsData, webSocketConnection.wsi);
 
     sa.sa_handler = handleSignal;
     sa.sa_flags = 0;

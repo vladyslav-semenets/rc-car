@@ -94,7 +94,7 @@ short readMPU6050Data(int handle, int reg) {
 }
 
 void calibrateMPU6050(int handle, int samples) {
-  printf("MPU6050 Calibrating gyro...\n");
+  printf("[MPU6050] Calibrating gyro...\n");
   float sumZ = 0.0;
   for (int i = 0; i < samples; i++) {
     short gyroZ = readMPU6050Data(handle, GYRO_ZOUT_H);
@@ -102,7 +102,7 @@ void calibrateMPU6050(int handle, int samples) {
     usleep(10000);
   }
   gyroZOffset = sumZ / samples;
-  printf("MPU6050 Gyro Z Offset: %.2f\n", gyroZOffset);
+  printf("[MPU6050] Gyro Z Offset: %.2f\n", gyroZOffset);
 }
 
 void turnTo(const float *degrees) {
@@ -178,7 +178,7 @@ void enableDisableEsc() {
   printf("[ESC] OFF\n");
   sleep(5);
   gpioWrite(CAR_ESC_ENABLE_PIN, 0);
-  printf("[ESC] is ON\n");
+  printf("[ESC] ON\n");
   sleep(5);
 }
 
@@ -194,21 +194,21 @@ void startCamera() {
     exit(EXIT_FAILURE);
   }
 
-  printf("MediaMTX started with PID %d \n", mediaMtxPid);
+  printf("[MediaMTX] started with PID %d \n", mediaMtxPid);
 }
 
 void stopCamera() {
   if (kill(mediaMtxPid, SIGTERM) == 0) {
-    printf("MediaMTX process (PID %d) terminated successfully.\n", mediaMtxPid);
+    printf("[MediaMTX] process (PID %d) terminated successfully.\n", mediaMtxPid);
     int status;
     waitpid(mediaMtxPid, &status, 0);
     if (WIFEXITED(status)) {
-      printf("MediaMTX exited with status %d.\n", WEXITSTATUS(status));
+      printf("[MediaMTX] exited with status %d.\n", WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-      printf("MediaMTX was terminated by signal %d.\n", WTERMSIG(status));
+      printf("[MediaMTX] was terminated by signal %d.\n", WTERMSIG(status));
     }
   } else {
-    perror("Failed to terminate MediaMTX process");
+    perror("[MediaMTX] Failed to terminate process");
   }
 }
 

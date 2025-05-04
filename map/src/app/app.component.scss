@@ -1,0 +1,39 @@
+main {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: inherit;
+  position: relative;
+}
+
+.content {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+mat-card {
+  width: 100%;
+  text-align: center;
+}
+
+.connect-status-text {
+  color: white;
+}
+
+.loader {
+  display: flex;
+  align-self: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+iframe {
+  margin-top: 20px;
+  width: 100vw;
+  height: 100vh;
+}
