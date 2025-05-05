@@ -3,6 +3,10 @@
 socket-server/javascript/node_modules
 client/javascript/node_modules
 client/javascript/.angular
+client/javascript/.env.local
+map/.angular
+map/.env.local
+map/node_modules
 raspberry-pi-client/javascript/node_modules
 client/c/.idea
 client/c/cmake-build-debug
@@ -51,4 +55,3 @@ docker/data/*
 
 # Misc
 .env
-client/javascript/.env.local

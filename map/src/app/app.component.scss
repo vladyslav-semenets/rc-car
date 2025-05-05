@@ -1,10 +1,8 @@
 main {
-  width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  box-sizing: inherit;
-  position: relative;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
 }
 
 .content {
@@ -15,25 +13,17 @@ main {
   justify-content: center;
 }
 
-mat-card {
-  width: 100%;
-  text-align: center;
-}
-
-.connect-status-text {
+.dashboard {
+  height: 60px;
+  background: #222;
   color: white;
-}
-
-.loader {
   display: flex;
-  align-self: center;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  font-size: 16px;
 }
 
-iframe {
-  margin-top: 20px;
-  width: 100vw;
-  height: 100vh;
+mgl-map {
+  height: 100%;
+  width: 100%;
 }

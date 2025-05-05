@@ -4,6 +4,7 @@ declare interface Env {
   // Replace the following with your own environment variables.
   // Example: NGX_VERSION: string;
   readonly NG_APP_RASPBERRY_PI_IP: string;
+  readonly NG_APP_MAPBOX_ACCESS_TOKEN: string;
 }
 
 // Choose how to access the environment variables.

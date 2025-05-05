@@ -1,18 +1,13 @@
 <main class="main">
-	<div class="content">
-		<mat-card *ngIf="controller; else loader">
-			<mat-card-content>
-				<h1 class="connect-status-text">Connected to DualShock</h1>
-			</mat-card-content>
-		</mat-card>
+	<mgl-map
+		[style]="mapStyle"
+		[zoom]="zoom()"
+		[center]="center()"
+		(mapCreate)="onMapCreate($event)"
+	/>
+	<div class="dashboard">
+		<div>Car speed: <span [@speedChanged]="speed()">{{ speed() }}</span> km/h</div>
 	</div>
 </main>
 
 <router-outlet/>
-
-<ng-template #loader>
-	<div class="loader">
-		<h1>Waiting for the DualShock</h1>
-		<mat-spinner></mat-spinner>
-	</div>
-</ng-template>
