@@ -6,10 +6,11 @@
 #include "rc-car.h"
 #include "websocket.h"
 #include "stdbool.h"
+#include "utils//mavlink.util.h"
 #include "utils/joystick.util.h"
 
 static SDL_GameController *controller = NULL;
-struct lws *webSocketInstance = NULL;
+UDPConnection *udpConnectionInstance = NULL;
 bool isSteeringCalibrationOn = false;
 
 JoystickState *joystickState = NULL;
@@ -75,207 +76,87 @@ int prepareSpeedBaseOnSelectedTransmissionSpeed(RcCar *self, const int *speed) {
 }
 
 void changDegreeOfTurns(RcCar *self) {
-    int len = snprintf(NULL, 0, "%f", self->degreeOfTurns);
-    char *axisXDegreesAsString = malloc(len + 1);
-    snprintf(axisXDegreesAsString, len + 1, "%f", self->degreeOfTurns);
-
-    struct ResetTurnsActionPayloadData resetTurnsActionPayloadData;
-    resetTurnsActionPayloadData.degreeOfTurns = axisXDegreesAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "change-degree-of-turns");
-    cJSON_AddStringToObject(data, "degrees", resetTurnsActionPayloadData.degreeOfTurns);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(axisXDegreesAsString);
+    float params[] = {self->degreeOfTurns};
+    sendMavlinkCommand(MAVLINK_CHANGE_DEGREE_OF_TURNS_COMMAND, udpConnectionInstance, params, 1);
 }
 
 void resetTurns(RcCar *self) {
-    int len = snprintf(NULL, 0, "%f", self->degreeOfTurns);
-    char *axisXDegreesAsString = malloc(len + 1);
-    snprintf(axisXDegreesAsString, len + 1, "%f", self->degreeOfTurns);
-
-    struct ResetTurnsActionPayloadData resetTurnsActionPayloadData;
-    resetTurnsActionPayloadData.degreeOfTurns = axisXDegreesAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "reset-turns");
-    cJSON_AddStringToObject(data, "degrees", resetTurnsActionPayloadData.degreeOfTurns);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(axisXDegreesAsString);
+    float params[] = {self->degreeOfTurns};
+    sendMavlinkCommand(MAVLINK_RESET_TURNS_COMMAND, udpConnectionInstance, params, 1);
 }
 
 void turnCar(const float *degrees) {
-    float degreesValue = *degrees;
-    int len = snprintf(NULL, 0, "%f", degreesValue);
-    char *axisXDegreesAsString = malloc(len + 1);
-    snprintf(axisXDegreesAsString, len + 1, "%f", degreesValue);
-
-    struct TurnToActionPayloadData turnToActionPayload;
-    turnToActionPayload.degrees = axisXDegreesAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "turn-to");
-    cJSON_AddStringToObject(data, "degrees", turnToActionPayload.degrees);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(axisXDegreesAsString);
+    if (degrees == NULL) {
+        return;
+    }
+    float params[] = {*degrees};
+    sendMavlinkCommand(MAVLINK_TURN_TO_COMMAND, udpConnectionInstance, params, 1);
 }
 
 void forward(RcCar *self, const int *speed) {
     int speedValue = prepareSpeedBaseOnSelectedTransmissionSpeed(self, speed);
-    int len = snprintf(NULL, 0, "%d", speedValue);
-    char *speedAsString = malloc(len + 1);
-    snprintf(speedAsString, len + 1, "%d", speedValue);
-
-    struct ForwardBackwardActionPayloadData forwardBackwardActionPayloadData;
-    forwardBackwardActionPayloadData.carSpeed = speedAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "forward");
-    cJSON_AddStringToObject(data, "speed", forwardBackwardActionPayloadData.carSpeed);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(speedAsString);
+    if (speed == NULL) {
+        return;
+    }
+    float params[] = {(float) speedValue};
+    sendMavlinkCommand(MAVLINK_FORWARD_COMMAND, udpConnectionInstance, params, 1);
 }
 
 void backward(const int *speed) {
-    int speedValue = *speed;
-    int len = snprintf(NULL, 0, "%d", speedValue);
-    char *speedAsString = malloc(len + 1);
-    snprintf(speedAsString, len + 1, "%d", speedValue);
+    if (speed == NULL) {
+        return;
+    }
+    float params[] = {(float) *speed};
+    sendMavlinkCommand(MAVLINK_BACKWARD_COMMAND, udpConnectionInstance, params, 1);
 
-    struct ForwardBackwardActionPayloadData forwardBackwardActionPayloadData;
-    forwardBackwardActionPayloadData.carSpeed = speedAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "backward");
-    cJSON_AddStringToObject(data, "speed", forwardBackwardActionPayloadData.carSpeed);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(speedAsString);
 }
 
 void setEscToNeutralPosition() {
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "set-esc-to-neutral-position");
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
+    float params[] = {};
+    sendMavlinkCommand(MAVLINK_SET_ESC_TO_NEUTRAL_POSITION_COMMAND, udpConnectionInstance, params, 0);
 }
 
 void startCamera() {
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "start-camera");
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
+    float params[] = {};
+    sendMavlinkCommand(MAVLINK_START_CAMERA_COMMAND, udpConnectionInstance, params, 0);
 }
 
 void stopCamera() {
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "stop-camera");
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
+    float params[] = {};
+    sendMavlinkCommand(MAVLINK_STOP_CAMERA_COMMAND, udpConnectionInstance, params, 0);
 }
 
 void cameraGimbalTurn(const float *degrees) {
-    float degreesValue = *degrees;
-    int len = snprintf(NULL, 0, "%f", degreesValue);
-    char *axisXDegreesAsString = malloc(len + 1);
-    snprintf(axisXDegreesAsString, len + 1, "%f", degreesValue);
-
-    struct TurnToActionPayloadData turnToActionPayload;
-    turnToActionPayload.degrees = axisXDegreesAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "camera-gimbal-turn-to");
-    cJSON_AddStringToObject(data, "degrees", turnToActionPayload.degrees);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(axisXDegreesAsString);
+    if (degrees == NULL) {
+        return;
+    }
+    float params[] = {*degrees};
+    sendMavlinkCommand(MAVLINK_CAMERA_GIMBAL_TURN_TO_COMMAND, udpConnectionInstance, params, 1);
 }
 
 void cameraGimbalSetPitchAngle(RcCar *self) {
-    int len = snprintf(NULL, 0, "%d", self->pitchAngle);
-    char *axisXDegreesAsString = malloc(len + 1);
-    snprintf(axisXDegreesAsString, len + 1, "%d", self->pitchAngle);
-
-    struct CameraGimbalSetPitchAngleActionPayloadData cameraGimbalSetPitchAngleActionPayloadData;
-    cameraGimbalSetPitchAngleActionPayloadData.degrees = axisXDegreesAsString;
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "camera-gimbal-set-pitch-angle");
-    cJSON_AddStringToObject(data, "degrees", cameraGimbalSetPitchAngleActionPayloadData.degrees);
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(axisXDegreesAsString);
+    float params[] = {(float)self->pitchAngle};
+    sendMavlinkCommand(MAVLINK_CAMERA_GIMBAL_SET_PITCH_ANGLE_COMMAND, udpConnectionInstance, params, 1);
 }
 
 void resetCameraGimbal() {
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "reset-camera-gimbal");
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
+    float params[] = {};
+    sendMavlinkCommand(MAVLINK_RESET_CAMERA_GIMBAL_COMMAND, udpConnectionInstance, params, 0);
 }
 
 void startSteeringCalibration() {
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "steering-calibration-on");
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
+    float params[] = {};
+    sendMavlinkCommand(MAVLINK_STEERING_CALIBRATION_ON_COMMAND, udpConnectionInstance, params, 0);
 }
 
 void stopSteeringCalibration() {
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "steering-calibration-off");
-
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
+    float params[] = {};
+    sendMavlinkCommand(MAVLINK_STEERING_CALIBRATION_OFF_COMMAND, udpConnectionInstance, params, 0);
 }
 
 void init(RcCar *self) {
-    int lenSpeed = snprintf(NULL, 0, "%d", self->speed);
-    char *speedAsString = malloc(lenSpeed + 1);
-    snprintf(speedAsString, lenSpeed + 1, "%d", self->speed);
-
-    int lenDegrees = snprintf(NULL, 0, "%f", self->degreeOfTurns);
-    char *axisXDegreesAsString = malloc(lenDegrees + 1);
-    snprintf(axisXDegreesAsString, lenDegrees + 1, "%f", self->degreeOfTurns);
-
-    cJSON *data = cJSON_CreateObject();
-    cJSON_AddStringToObject(data, "action", "init");
-    cJSON_AddStringToObject(data, "speed", speedAsString);
-    cJSON_AddStringToObject(data, "degrees", axisXDegreesAsString);
-    const char *payload = prepareActionPayload(data);
-
-    sendWebSocketEvent(payload, webSocketInstance);
-    free(speedAsString);
-    free(axisXDegreesAsString);
+    float params[] = {(float)self->speed, self->degreeOfTurns};
+    sendMavlinkCommand(MAVLINK_INIT_COMMAND, udpConnectionInstance, params, 2);
 }
 
 void processJoystickEvents(RcCar *self, SDL_Event *e) {
@@ -442,8 +323,8 @@ void setControllerInstance(SDL_GameController *controllerInstance) {
     controller = controllerInstance;
 }
 
-void setWebSocketInstance(struct lws *instance) {
-    webSocketInstance = instance;
+void setUdpConnectionInstance(UDPConnection *udpConnection) {
+    udpConnectionInstance = udpConnection;
 }
 
 void onCloseJoystick() {
@@ -456,7 +337,7 @@ RcCar *newRcCar() {
     rcCar->speed = 50;
     rcCar->transmissionSpeed = 1;
     rcCar->pitchAngle = 0;
-    rcCar->setWebSocketInstance = setWebSocketInstance;
+    rcCar->setUdpConnection = setUdpConnectionInstance;
     rcCar->setControllerInstance = setControllerInstance;
     rcCar->processJoystickEvents = processJoystickEvents;
     rcCar->onCloseJoystick = onCloseJoystick;

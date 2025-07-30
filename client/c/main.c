@@ -1,11 +1,14 @@
 #include <signal.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include "libs/env/dotenv.h"
 #include "joystick.h"
 #include "websocket.h"
+#include "udp.h"
+#include "rc-car.h"
+#include "utils//mavlink.util.h"
 
 int isRunning = 1;
+UDPConnection udpConnection;
 
 void handleSignal(const int signal) {
     switch (signal) {
@@ -14,25 +17,11 @@ void handleSignal(const int signal) {
         case SIGTSTP:
             isRunning = 0;
             closeJoystick();
-            closeWebSocketServer();
+            closeUDPConnection(&udpConnection);
             exit(0);
         default:
             break;
     }
-}
-
-void *webSocketThread(void *arg) {
-    struct lws_context *context = (struct lws_context *)arg;
-
-    while (isRunning) {
-        lws_service(context, 100);
-
-        if (!isRunning) {
-            break;
-        }
-    }
-
-    return NULL;
 }
 
 int main() {
@@ -42,8 +31,15 @@ int main() {
         return -1;
     }
 
+    udpConnection = connectToUDPServer(atoi(getenv("UDP_SERVER_PORT")));
+
+    if (udpConnection.socket_fd < 0) {
+        fprintf(stderr, "[UDP] Failed to setup connection\n");
+        closeJoystick();
+        return -1;
+    }
+
     struct sigaction sa;
-    WebSocketConnection webSocketConnection = connectToWebSocketServer();
 
     sa.sa_handler = handleSignal;
     sa.sa_flags = 0;
@@ -53,10 +49,11 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    pthread_t wsThread;
-    pthread_create(&wsThread, NULL, webSocketThread, webSocketConnection.context);
+    float params[] = {};
 
-    startJoystickLoop(&isRunning, webSocketConnection.wsi);
+    sendMavlinkCommand(MAVLINK_START_CAMERA_COMMAND, &udpConnection, params, 0);
+
+    startJoystickLoop(&isRunning, &udpConnection);
 
     return 0;
 }
