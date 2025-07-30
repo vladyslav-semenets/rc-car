@@ -49,10 +49,6 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    float params[] = {};
-
-    sendMavlinkCommand(MAVLINK_START_CAMERA_COMMAND, &udpConnection, params, 0);
-
     startJoystickLoop(&isRunning, &udpConnection);
 
     return 0;

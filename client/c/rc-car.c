@@ -177,9 +177,9 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
                 float degrees = 0;
                 const int axisXValue = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
                 if (axisXValue > 0) {
-                    degrees = mapStickToDegrees(axisXValue, 0, self->degreeOfTurns, 0.01);
+                    degrees = mapStickToDegrees(axisXValue, 0, self->degreeOfTurns, 0.001);
                 } else {
-                    degrees = mapStickToDegrees(axisXValue, self->degreeOfTurns, 140, 0.01);
+                    degrees = mapStickToDegrees(axisXValue, self->degreeOfTurns, 140, 0.001);
                 }
 
                 turnCar(&degrees);
@@ -314,6 +314,15 @@ void processJoystickEvents(RcCar *self, SDL_Event *e) {
 
         if (e->cbutton.button == SDL_CONTROLLER_BUTTON_Y) {
             startCamera();
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_X) {
+            const int initialSpeed = 11;
+            forward(self, &initialSpeed);
+        }
+
+        if (e->cbutton.button == SDL_CONTROLLER_BUTTON_B) {
+            setEscToNeutralPosition();
         }
     }
 }
