@@ -1,4 +1,3 @@
-#include <cjson/cJSON.h>
 #include <math.h>
 #include "libs/mavlink/common/mavlink.h"
 #ifdef __APPLE__
@@ -114,6 +113,7 @@ void *steeringWheelCorrectionThread(void *arg) {
 }
 
 void move(const int speed, const char *direction) {
+    printf("speed: %d, direction: %s", speed, direction);
     int pulseWidth = CAR_ESC_NEUTRAL_PWM;
 
     if (strcmp(direction, "forward") == 0) {
@@ -239,6 +239,7 @@ void processMavlinkCommands(mavlink_message_t *msg) {
             case MAVLINK_FORWARD_COMMAND: {
                 move((int) commandLong.param1, "forward");
             }
+            break;
             case MAVLINK_BACKWARD_COMMAND: {
                 move((int) commandLong.param1, "backward");
             }
@@ -275,7 +276,7 @@ void processMavlinkCommands(mavlink_message_t *msg) {
 }
 
 RcCar *newRcCar() {
-    RcCar *rcCar = (RcCar *) malloc(sizeof(RcCar));
+    RcCar *rcCar = malloc(sizeof(RcCar));
     rcCar->processMavlinkCommands = processMavlinkCommands;
     return rcCar;
 }
