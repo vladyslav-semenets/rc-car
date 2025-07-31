@@ -30,7 +30,6 @@ void sendMavlinkCommand(
     );
 
     uint16_t len = mavlink_msg_to_send_buffer(buffer, &message);
-    printf("Sending command %i\n", command);
     sendUDPBinary(buffer, len, udpConnection);
 }
 
