@@ -687,7 +687,7 @@ paths:
   # my_camera:
   #   source: rtsp://my_camera
   cam1:
-    runOnInit: bash -c 'ffmpeg -f v4l2 -framerate 30 -video_size 1280x720 -input_format mjpeg -i /dev/video0 -vf format=yuv420p -c:v h264_v4l2m2m -b:v 1500k -preset ultrafast -tune zerolatency -g 15 -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH'
+    runOnInit: bash -c 'ffmpeg -f v4l2 -framerate 30 -video_size 1280x720 -input_format mjpeg -i /dev/video0 -vf format=yuv420p -color_range mpeg -c:v h264_v4l2m2m -b:v 1500k -g 15 -preset ultrafast -tune zerolatency -g 15 -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH'
     runOnInitRestart: yes
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
