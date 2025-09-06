@@ -685,21 +685,18 @@ pathDefaults:
 paths:
   cam1:
     runOnInit: >
-      ffmpeg -f v4l2 -framerate 30 -video_size 1280x720 -input_format yuyv422
-      -i /dev/video0
-      -vf "format=yuv420p,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=/home/vladyslav/rc-car-repo/stream_text.txt:reload=1:fontcolor=white:fontsize=24:x=10:y=10:box=1:boxcolor=black@0.5"
-      -pix_fmt yuv420p -c:v h264_v4l2m2m -b:v 3000k -g 15
-      -f rtsp rtsp://127.0.0.1:$RTSP_PORT/cam1
-    runOnInitRestart: yes
-
-  cam2:
-    runOnInit: >
-      ffmpeg -f v4l2 -framerate 30 -video_size 960x540 -input_format yuyv422
-      -i /dev/video2
-      -vf "format=yuv420p,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=/home/vladyslav/rc-car-repo/stream_text.txt:reload=1:fontcolor=white:fontsize=24:x=10:y=10:box=1:boxcolor=black@0.5"
-      -pix_fmt yuv420p -c:v h264_v4l2m2m -b:v 2000k -g 15
-      -f rtsp rtsp://127.0.0.1:$RTSP_PORT/cam2
-    runOnInitRestart: yes
+      ffmpeg -f v4l2 -framerate 30 -video_size 1280x720 -input_format yuyv422 -i /dev/video0
+      -f v4l2 -framerate 30 -video_size 960x540 -input_format yuyv422 -i /dev/video2
+      -filter_complex "
+        [1:v]scale=320:-1[cam2_scaled];
+        [0:v][cam2_scaled]overlay=W-w-10:H-h-10,format=yuv420p,
+        drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:
+        textfile=/home/vladyslav/rc-car-repo/stream_text.txt:
+        reload=1:fontcolor=white:fontsize=24:x=10:y=10:box=1:boxcolor=black@0.5
+      "
+      -pix_fmt yuv420p -c:v h264_v4l2m2m -b:v 3500k -g 15
+      -f rtsp rtsp://127.0.0.1:$RTSP_PORT/cam_combined
+      runOnInitRestart: yes
 
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
