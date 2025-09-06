@@ -696,7 +696,7 @@ paths:
       "
       -pix_fmt yuv420p -c:v h264_v4l2m2m -b:v 3500k -g 15
       -f rtsp rtsp://127.0.0.1:$RTSP_PORT/cam_combined
-      runOnInitRestart: yes
+    runOnInitRestart: yes
 
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
