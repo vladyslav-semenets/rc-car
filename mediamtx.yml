@@ -689,8 +689,9 @@ paths:
         -f v4l2 -framerate 30 -video_size 1280x720 -input_format yuyv422 -i /dev/video0 \
         -f v4l2 -framerate 30 -video_size 960x540 -input_format yuyv422 -i /dev/video2 \
         -filter_complex "
-          [1:v]scale=-2:720[cam2_scaled];
-          [0:v][cam2_scaled]hstack=inputs=2,format=yuv420p,
+          [0:v]scale=1280:720[cam1_scaled];
+          [1:v]scale=640:720[cam2_scaled];
+          [cam1_scaled][cam2_scaled]hstack=inputs=2,format=yuv420p,
           drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:
             textfile=/home/vladyslav/rc-car-repo/stream_text.txt:
             reload=1:fontcolor=white:fontsize=24:x=10:y=10:box=1:boxcolor=black@0.5
@@ -699,6 +700,7 @@ paths:
         -c:v h264_v4l2m2m -b:v 5000k -g 15 \
         -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
     runOnInitRestart: yes
+
 
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
