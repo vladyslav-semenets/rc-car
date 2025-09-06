@@ -12,7 +12,7 @@ pipeline_str = (
     "videoscale ! video/x-raw,width=1280,height=720 ! "  # <-- changed here
     "x264enc tune=zerolatency bitrate=2000 speed-preset=ultrafast ! "
     "rtph264pay config-interval=1 pt=96 ! "
-    "udpsink host=100.78.40.118 port=5000"
+    "udpsink host=100.78.40.118 port=6000"
 )
 
 pipeline = Gst.parse_launch(pipeline_str)
