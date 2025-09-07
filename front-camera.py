@@ -14,5 +14,8 @@ cmd = [
     "!", "udpsink", "host=100.78.40.118", "port=5000", "sync=false"
 ]
 
-print("Streaming front camera (1280x720 @10fps) via CLI...")
-subprocess.run(cmd)
+try:
+    print("Streaming front camera... Ctrl+C to stop.")
+    subprocess.run(cmd)
+except KeyboardInterrupt:
+    print("Stream stopped by user.")
