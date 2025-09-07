@@ -7,7 +7,7 @@ import numpy as np
 Gst.init(None)
 
 pipeline_str = (
-    'udpsrc port=5000 caps="application/x-rtp, media=video, clock-rate=90000, encoding-name=H264, payload=96" ! '
+    'udpsrc port=5001 caps="application/x-rtp, media=video, clock-rate=90000, encoding-name=H264, payload=96" ! '
     'rtph264depay ! avdec_h264 ! videoconvert ! video/x-raw,format=BGR ! appsink name=mysink emit-signals=true max-buffers=1 drop=true'
 )
 
@@ -34,7 +34,7 @@ try:
 
             frame = frame.reshape((height, width, 3))
 
-            cv2.imshow('Front Camera', frame)
+            cv2.imshow('Rear Camera', frame)
             buffer.unmap(map_info)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

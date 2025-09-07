@@ -9,7 +9,7 @@ cmd = [
     "!", "videoflip", "method=clockwise",
     "!", "videoconvert",
     "!", "video/x-raw,format=I420",
-    "!", "x264enc", "tune=zerolatency", "bitrate=2000", "speed-preset=ultrafast", "key-int-max=20",
+    "!", "x264enc", "tune=zerolatency", "bitrate=1200", "speed-preset=ultrafast", "key-int-max=20",
     "!", "rtph264pay", "config-interval=1", "pt=96",
     "!", "udpsink", "host=100.78.40.118", "port=5000", "sync=false"
 ]
