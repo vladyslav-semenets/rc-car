@@ -10,7 +10,6 @@ pipeline_str = (
     "jpegdec ! "
     "videoflip method=clockwise ! "
     "videoscale ! video/x-raw,width=960,height=540 ! "
-    "clockoverlay time-format=\"%Y-%m-%d %H:%M:%S\" shaded-background=true font-desc=\"Sans, 24\" ! "
     "x264enc tune=zerolatency bitrate=2000 speed-preset=ultrafast ! "
     "rtph264pay config-interval=1 pt=96 ! "
     "udpsink host=100.78.40.118 port=5001"
@@ -21,7 +20,7 @@ pipeline.set_state(Gst.State.PLAYING)
 
 try:
     loop = GObject.MainLoop()
-    print("Streaming with current time overlay... Ctrl+C to stop.")
+    print("Streaming video... Ctrl+C to stop.")
     loop.run()
 except KeyboardInterrupt:
     print("Stopping pipeline...")
