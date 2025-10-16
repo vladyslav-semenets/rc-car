@@ -125,9 +125,13 @@ void move(const int speed, const char *direction) {
     }
 
     gpioServo(CAR_ESC_PIN, pulseWidth);
+    gpioServo(CAR_ESC_SECOND_PIN, pulseWidth);
 }
 
-void setEscToNeutralPosition() { gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM); }
+void setEscToNeutralPosition() {
+    gpioServo(CAR_ESC_PIN, CAR_ESC_NEUTRAL_PWM);
+    gpioServo(CAR_ESC_SECOND_PIN, CAR_ESC_NEUTRAL_PWM);
+}
 
 void enableDisableEsc() {
     gpioWrite(CAR_ESC_ENABLE_PIN, 1);
