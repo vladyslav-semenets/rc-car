@@ -370,12 +370,11 @@ webrtcIPsFromInterfaces: yes
 # An empty value means to use all available interfaces.
 webrtcIPsFromInterfacesList: []
 # List of additional hosts or IPs to send to clients.
-webrtcAdditionalHosts: [18.175.57.17, 172.31.2.5, d3ce-80-238-115-13.ngrok-free.app]
+webrtcAdditionalHosts: [100.108.40.34]
 # ICE servers. Needed only when local listeners can't be reached by clients.
 # STUN servers allows to obtain and share the public IP of the server.
 # TURN/TURNS servers forces all traffic through them.
-webrtcICEServers2:
-  - url: stun:stun.l.google.com:19302
+webrtcICEServers2: []
   # if user is "AUTH_SECRET", then authentication is secret based.
   # the secret must be inserted into the password field.
   # username: ''
@@ -503,9 +502,9 @@ pathDefaults:
   # ID of the camera
   rpiCameraCamID: 0
   # width of frames
-  rpiCameraWidth: 1920
+  rpiCameraWidth: 1280
   # height of frames
-  rpiCameraHeight: 1080
+  rpiCameraHeight: 720
   # flip horizontally
   rpiCameraHFlip: false
   # flip vertically
@@ -551,13 +550,13 @@ pathDefaults:
   # frames per second
   rpiCameraFPS: 30
   # period between IDR frames
-  rpiCameraIDRPeriod: 60
+  rpiCameraIDRPeriod: 30
   # bitrate
-  rpiCameraBitrate: 1000000
+  rpiCameraBitrate: 3000000
   # H264 profile
-  rpiCameraProfile: main
+  rpiCameraProfile: high
   # H264 level
-  rpiCameraLevel: '4.1'
+  rpiCameraLevel: '4.2'
   # Autofocus mode
   # values: auto, manual, continuous
   rpiCameraAfMode: continuous
@@ -684,7 +683,7 @@ pathDefaults:
 # for example "~^prefix" will match all paths that start with "prefix".
 paths:
   front:
-    runOnInit: bash -c 'ffmpeg -f v4l2 -framerate 25 -video_size 1280x720 -i /dev/video0 -c:v h264_v4l2m2m -b:v 2500k -maxrate 2500k -bufsize 500k -g 10 -pix_fmt yuv420p -tune zerolatency -f rtsp rtsp://localhost:8554/front'
+    runOnInit: bash -c 'ffmpeg -f v4l2 -input_format mjpeg -framerate 30 -video_size 1280x720 -i /dev/video0 -c:v h264_v4l2m2m -b:v 2500k -maxrate 2500k -bufsize 2500k -g 30 -keyint_min 30 -pix_fmt yuv420p -profile:v high -level 4.2 -flush_packets 1 -f rtsp -rtsp_transport tcp rtsp://localhost:8554/front'
     runOnInitRestart: yes
 
   # Settings under path "all_others" are applied to all paths that
