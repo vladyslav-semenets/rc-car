@@ -683,7 +683,7 @@ pathDefaults:
 # for example "~^prefix" will match all paths that start with "prefix".
 paths:
   front:
-    runOnInit: bash /home/vladyslav/rc-car-repo/stream.sh
+    runOnInit: bash -c 'ffmpeg -f v4l2 -framerate 25 -video_size 1280x720 -i /dev/video0 -c:v h264_v4l2m2m -b:v 2500k -maxrate 2500k -bufsize 500k -g 10 -pix_fmt yuv420p -tune zerolatency -f rtsp rtsp://localhost:8554/front'
     runOnInitRestart: yes
 
   # Settings under path "all_others" are applied to all paths that
