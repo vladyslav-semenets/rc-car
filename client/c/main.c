@@ -1,5 +1,6 @@
 #include <signal.h>
 #include <unistd.h>
+#include <stdio.h>
 #include "libs/env/dotenv.h"
 #include "joystick.h"
 #include "websocket.h"
@@ -24,8 +25,26 @@ void handleSignal(const int signal) {
     }
 }
 
+void startRemoteMediaMTX() {
+    const char *ip   = getenv("RASPBERRY_PI_IP");
+    const char *user = getenv("PI_SSH_USER");
+    if (!ip || !user) {
+        fprintf(stderr, "[SSH] RASPBERRY_PI_IP or PI_SSH_USER not set in .env — skipping mediamtx start\n");
+        return;
+    }
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd),
+        "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no %s@%s "
+        "'pgrep mediamtx || (cd ~/rc-car-repo && ./mediamtx)' > /dev/null 2>&1 &",
+        user, ip);
+    printf("[SSH] Starting mediamtx on %s@%s...\n", user, ip);
+    system(cmd);
+}
+
 int main() {
     env_load(".env", false);
+
+    startRemoteMediaMTX();
 
     if (initJoystick() != 0) {
         return -1;
