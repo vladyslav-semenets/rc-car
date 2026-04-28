@@ -14,11 +14,56 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
+#include <pthread.h>
 
 #include "rc-car.h"
 #include "websocket.h"
 
 pid_t mediaMtxPid = -1;
+
+// ── Watchdog ──────────────────────────────────────────────────────────────────
+// Pi ждёт MAVLink HEARTBEAT от клиента каждые 300мс.
+// Если heartbeat не приходил больше WATCHDOG_TIMEOUT_MS → стоп.
+#define WATCHDOG_TIMEOUT_MS 1000
+
+static volatile time_t  lastHbSec  = 0;
+static volatile long    lastHbNsec = 0;
+static pthread_t        watchdogThreadHandle;
+static pthread_mutex_t  watchdogMutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void touchWatchdog() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    pthread_mutex_lock(&watchdogMutex);
+    lastHbSec  = ts.tv_sec;
+    lastHbNsec = ts.tv_nsec;
+    pthread_mutex_unlock(&watchdogMutex);
+}
+
+static void *watchdogThread(void *arg) {
+    printf("[Watchdog] started, timeout=%dms\n", WATCHDOG_TIMEOUT_MS);
+    touchWatchdog();  // инициализируем таймер при старте
+
+    while (1) {
+        usleep(100000);  // проверяем каждые 100мс
+
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+
+        pthread_mutex_lock(&watchdogMutex);
+        long elapsed_ms = (now.tv_sec  - lastHbSec)  * 1000
+                        + (now.tv_nsec - lastHbNsec) / 1000000;
+        pthread_mutex_unlock(&watchdogMutex);
+
+        if (elapsed_ms > WATCHDOG_TIMEOUT_MS) {
+            printf("[Watchdog] no heartbeat for %ldms — stopping car\n", elapsed_ms);
+            gpioServo(CAR_ESC_PIN,        CAR_ESC_NEUTRAL_PWM);
+            gpioServo(CAR_ESC_SECOND_PIN, CAR_ESC_NEUTRAL_PWM);
+        }
+    }
+    return NULL;
+}
 
 float gyroZOffset = 0.0;
 float scalingFactor = 15.0;
@@ -193,6 +238,12 @@ void cameraGimbalSetPitch(const float degrees) {
 }
 
 void processMavlinkCommands(mavlink_message_t *msg) {
+    // MAVLink HEARTBEAT (msg_id=0) — обновляем watchdog таймер
+    if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+        touchWatchdog();
+        return;
+    }
+
     if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
         mavlink_command_long_t commandLong;
         mavlink_msg_command_long_decode(msg, &commandLong);
@@ -282,5 +333,11 @@ void processMavlinkCommands(mavlink_message_t *msg) {
 RcCar *newRcCar() {
     RcCar *rcCar = malloc(sizeof(RcCar));
     rcCar->processMavlinkCommands = processMavlinkCommands;
+
+    // Запускаем watchdog поток
+    if (pthread_create(&watchdogThreadHandle, NULL, watchdogThread, NULL) != 0) {
+        fprintf(stderr, "[Watchdog] failed to create thread\n");
+    }
+
     return rcCar;
 }

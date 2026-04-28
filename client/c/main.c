@@ -1,15 +1,46 @@
 #include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <pthread.h>
 #include "libs/env/dotenv.h"
 #include "joystick.h"
 #include "websocket.h"
 #include "udp.h"
 #include "rc-car.h"
 #include "utils//mavlink.util.h"
+#include "libs/mavlink/common/mavlink.h"
 
 int isRunning = 1;
 UDPConnection udpConnection;
+
+// ── Heartbeat поток ───────────────────────────────────────────────────────────
+// Шлёт MAVLink HEARTBEAT каждые 300мс.
+// Pi watchdog ждёт его — если тишина > 1 сек, машина останавливается.
+static pthread_t heartbeatThreadHandle;
+
+static void *heartbeatThread(void *arg) {
+    UDPConnection *conn = (UDPConnection *)arg;
+    printf("[Heartbeat] started, interval=300ms\n");
+
+    while (isRunning) {
+        mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+
+        mavlink_msg_heartbeat_pack(
+            1, 200, &msg,
+            MAV_TYPE_GROUND_ROVER,
+            MAV_AUTOPILOT_GENERIC,
+            0, 0,
+            MAV_STATE_ACTIVE
+        );
+
+        uint16_t len = mavlink_msg_to_send_buffer(buffer, &msg);
+        sendUDPBinary(buffer, len, conn);
+
+        usleep(300000);  // 300мс
+    }
+    return NULL;
+}
 
 void handleSignal(const int signal) {
     switch (signal) {
@@ -67,6 +98,14 @@ int main() {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
+
+    // Запускаем heartbeat поток
+    if (pthread_create(&heartbeatThreadHandle, NULL, heartbeatThread, &udpConnection) != 0) {
+        fprintf(stderr, "[Heartbeat] failed to create thread\n");
+        closeJoystick();
+        closeUDPConnection(&udpConnection);
+        return -1;
+    }
 
     startJoystickLoop(&isRunning, &udpConnection);
 
