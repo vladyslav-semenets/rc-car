@@ -23,12 +23,14 @@
 pid_t mediaMtxPid = -1;
 
 // ── Watchdog ──────────────────────────────────────────────────────────────────
-// Pi ждёт MAVLink HEARTBEAT от клиента каждые 300мс.
-// Если heartbeat не приходил больше WATCHDOG_TIMEOUT_MS → стоп.
-#define WATCHDOG_TIMEOUT_MS 1000
+// Pi ждёт MAVLink HEARTBEAT от клиента каждые 100мс.
+// Если heartbeat не приходил больше WATCHDOG_TIMEOUT_MS → стоп (один раз).
+// При восстановлении связи watchdog сбрасывается и машина снова слушает команды.
+#define WATCHDOG_TIMEOUT_MS 2000
 
-static volatile time_t  lastHbSec  = 0;
-static volatile long    lastHbNsec = 0;
+static volatile time_t  lastHbSec       = 0;
+static volatile long    lastHbNsec      = 0;
+static volatile bool    watchdogFired   = false;  // флаг: уже остановили
 static pthread_t        watchdogThreadHandle;
 static pthread_mutex_t  watchdogMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -36,8 +38,12 @@ static void touchWatchdog() {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     pthread_mutex_lock(&watchdogMutex);
-    lastHbSec  = ts.tv_sec;
-    lastHbNsec = ts.tv_nsec;
+    lastHbSec    = ts.tv_sec;
+    lastHbNsec   = ts.tv_nsec;
+    if (watchdogFired) {
+        watchdogFired = false;
+        printf("[Watchdog] heartbeat restored — car ready\n");
+    }
     pthread_mutex_unlock(&watchdogMutex);
 }
 
@@ -54,12 +60,16 @@ static void *watchdogThread(void *arg) {
         pthread_mutex_lock(&watchdogMutex);
         long elapsed_ms = (now.tv_sec  - lastHbSec)  * 1000
                         + (now.tv_nsec - lastHbNsec) / 1000000;
+        bool alreadyFired = watchdogFired;
         pthread_mutex_unlock(&watchdogMutex);
 
-        if (elapsed_ms > WATCHDOG_TIMEOUT_MS) {
+        if (elapsed_ms > WATCHDOG_TIMEOUT_MS && !alreadyFired) {
             printf("[Watchdog] no heartbeat for %ldms — stopping car\n", elapsed_ms);
             gpioServo(CAR_ESC_PIN,        CAR_ESC_NEUTRAL_PWM);
             gpioServo(CAR_ESC_SECOND_PIN, CAR_ESC_NEUTRAL_PWM);
+            pthread_mutex_lock(&watchdogMutex);
+            watchdogFired = true;
+            pthread_mutex_unlock(&watchdogMutex);
         }
     }
     return NULL;
@@ -238,9 +248,9 @@ void cameraGimbalSetPitch(const float degrees) {
 }
 
 void processMavlinkCommands(mavlink_message_t *msg) {
-    // MAVLink HEARTBEAT (msg_id=0) — обновляем watchdog таймер
+    // MAVLink HEARTBEAT (msg_id=0) — watchdog временно отключён
     if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT) {
-        touchWatchdog();
+        // touchWatchdog();
         return;
     }
 
@@ -334,10 +344,10 @@ RcCar *newRcCar() {
     RcCar *rcCar = malloc(sizeof(RcCar));
     rcCar->processMavlinkCommands = processMavlinkCommands;
 
-    // Запускаем watchdog поток
-    if (pthread_create(&watchdogThreadHandle, NULL, watchdogThread, NULL) != 0) {
-        fprintf(stderr, "[Watchdog] failed to create thread\n");
-    }
+    // Watchdog временно отключён
+    // if (pthread_create(&watchdogThreadHandle, NULL, watchdogThread, NULL) != 0) {
+    //     fprintf(stderr, "[Watchdog] failed to create thread\n");
+    // }
 
     return rcCar;
 }

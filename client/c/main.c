@@ -14,13 +14,13 @@ int isRunning = 1;
 UDPConnection udpConnection;
 
 // ── Heartbeat поток ───────────────────────────────────────────────────────────
-// Шлёт MAVLink HEARTBEAT каждые 300мс.
-// Pi watchdog ждёт его — если тишина > 1 сек, машина останавливается.
+// Шлёт MAVLink HEARTBEAT каждые 100мс.
+// Pi watchdog ждёт его — если тишина > 2 сек, машина останавливается.
 static pthread_t heartbeatThreadHandle;
 
 static void *heartbeatThread(void *arg) {
     UDPConnection *conn = (UDPConnection *)arg;
-    printf("[Heartbeat] started, interval=300ms\n");
+    printf("[Heartbeat] started, interval=100ms\n");
 
     while (isRunning) {
         mavlink_message_t msg;
@@ -37,7 +37,7 @@ static void *heartbeatThread(void *arg) {
         uint16_t len = mavlink_msg_to_send_buffer(buffer, &msg);
         sendUDPBinary(buffer, len, conn);
 
-        usleep(300000);  // 300мс
+        usleep(100000);  // 100мс
     }
     return NULL;
 }
