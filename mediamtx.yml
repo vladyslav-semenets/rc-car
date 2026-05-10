@@ -683,7 +683,7 @@ pathDefaults:
 # for example "~^prefix" will match all paths that start with "prefix".
 paths:
   front:
-    runOnInit: bash -c 'ffmpeg -f v4l2 -input_format mjpeg -framerate 20 -video_size 1280x720 -i /dev/video0 -c:v libx264 -preset superfast -tune zerolatency -x264-params nal-hrd=cbr:force-cfr=1:rc-lookahead=0:sync-lookahead=0 -b:v 4000k -maxrate 5000k -bufsize 8000k -g 20 -pix_fmt yuv420p -an -fflags nobuffer -flags low_delay -f rtsp rtsp://localhost:8554/front'
+    runOnInit: bash -c 'ffmpeg -f v4l2 -input_format mjpeg -framerate 20 -video_size 1280x720 -i /dev/video0 -c:v libx264 -preset superfast -tune zerolatency -x264-params nal-hrd=cbr:force-cfr=1:rc-lookahead=0:sync-lookahead=0 -b:v 3000k -maxrate 3500k -bufsize 3000k -g 20 -pix_fmt yuv420p -an -fflags nobuffer -flags low_delay -f rtsp rtsp://localhost:8554/front'
     runOnInitRestart: yes
 
   # Settings under path "all_others" are applied to all paths that
