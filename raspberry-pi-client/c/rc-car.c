@@ -84,25 +84,6 @@ static void applyEscPulse(int pw) {
     applyEscPulses(pw, pw);
 }
 
-/* ── Hobbywing reverse arming ────────────────────────────────────────────────
-   Without ESC configuration access, reverse requires a two-step sequence:
-     1. Send backward signal for ESC_REVERSE_BRAKE_MS  → ESC brakes
-     2. Return to neutral for ESC_REVERSE_NEUTRAL_MS   → ESC resets
-     3. Send backward signal again                     → ESC enters reverse
-   This state machine runs inside motorThread automatically whenever the
-   target crosses from neutral/forward into reverse.                         */
-#define ESC_REVERSE_BRAKE_MS    350   /* how long to hold the brake signal (ms) */
-#define ESC_REVERSE_NEUTRAL_MS  120   /* neutral gap between brake and reverse   */
-
-typedef enum {
-    ESC_STATE_IDLE,          /* at neutral or moving forward */
-    ESC_STATE_BRAKE,         /* first backward pulse — ESC braking */
-    ESC_STATE_REARM_NEUTRAL, /* brief neutral between brake and reverse */
-    ESC_STATE_REVERSE,       /* second backward pulse — ESC actually reversing */
-} EscReverseState;
-
-static EscReverseState escReverseState = ESC_STATE_IDLE;
-
 static void *motorThread(void *arg) {
     printf("[Motor] slew thread started (step=%d us / %d ms, dir-hold=%d ms, front-lag=%d steps)\n",
            ESC_SLEW_MAX_US, ESC_SLEW_INTERVAL_MS, ESC_DIR_CHANGE_HOLD_MS, ESC_FRONT_LAG_STEPS);
@@ -118,40 +99,9 @@ static void *motorThread(void *arg) {
         int frontCur = currentFrontEscPulseWidth;
         pthread_mutex_unlock(&motorMutex);
 
-        /* ── Hobbywing reverse arming state machine ─────────────────────── */
-        if (target < CAR_ESC_NEUTRAL_PWM && escReverseState == ESC_STATE_IDLE) {
-            /* Entering reverse from neutral/forward — start arming sequence */
-            printf("[Motor] reverse arm: brake phase (%d ms)\n", ESC_REVERSE_BRAKE_MS);
-            escReverseState = ESC_STATE_BRAKE;
+        if (rearCur == target && frontCur == target) continue;
 
-            /* Phase 1: send the backward signal so ESC registers the brake */
-            applyEscPulse(target);
-            usleep(ESC_REVERSE_BRAKE_MS * 1000);
-
-            /* Phase 2: brief neutral */
-            printf("[Motor] reverse arm: neutral gap (%d ms)\n", ESC_REVERSE_NEUTRAL_MS);
-            applyEscPulse(CAR_ESC_NEUTRAL_PWM);
-            usleep(ESC_REVERSE_NEUTRAL_MS * 1000);
-
-            /* Phase 3: ESC is now armed for reverse */
-            printf("[Motor] reverse arm: reverse engaged\n");
-            escReverseState = ESC_STATE_REVERSE;
-
-            /* Sync current positions to neutral after the gap */
-            lagBufInit();
-            pthread_mutex_lock(&motorMutex);
-            currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
-            currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
-            pthread_mutex_unlock(&motorMutex);
-            continue;
-        }
-
-        /* Reset reverse state when returning to neutral or going forward */
-        if (target >= CAR_ESC_NEUTRAL_PWM) {
-            escReverseState = ESC_STATE_IDLE;
-        }
-
-        /* ── Direction crossing (forward → backward via neutral hold) ───── */
+        /* Hold neutral on direction change to protect motors */
         bool crossingNeutral =
             (rearCur > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM) ||
             (rearCur < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
@@ -163,14 +113,12 @@ static void *motorThread(void *arg) {
             currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
             currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
             pthread_mutex_unlock(&motorMutex);
-            printf("[Motor] direction change — holding neutral for %d ms\n",
-                   ESC_DIR_CHANGE_HOLD_MS);
+            printf("[Motor] direction change — holding neutral for %d ms\n", ESC_DIR_CHANGE_HOLD_MS);
             usleep(ESC_DIR_CHANGE_HOLD_MS * 1000);
-            escReverseState = ESC_STATE_IDLE;
             continue;
         }
 
-        /* ── Normal slew ─────────────────────────────────────────────────── */
+        /* Slew rear toward target */
         int rearDelta = target - rearCur;
         if (rearDelta >  ESC_SLEW_MAX_US) rearDelta =  ESC_SLEW_MAX_US;
         if (rearDelta < -ESC_SLEW_MAX_US) rearDelta = -ESC_SLEW_MAX_US;
