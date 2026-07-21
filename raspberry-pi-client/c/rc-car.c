@@ -63,12 +63,12 @@ static void applyEscPulses(int rear_pw, int front_pw) {
 
     int rear_trimmed  = rear_pw + ESC_REAR_TRIM_US;
 
-    /* Apply front trim only while moving — preserve exact neutral at rest */
+    /* Apply front trim only when going forward — compensates for the higher
+       deadband on the front ESC. Backward trim is intentionally skipped
+       because the rear ESC has its own deadband characteristics in reverse. */
     int front_trimmed = front_pw;
     if (front_pw > CAR_ESC_NEUTRAL_PWM)
-        front_trimmed = front_pw + ESC_FRONT_TRIM_US;   /* forward */
-    else if (front_pw < CAR_ESC_NEUTRAL_PWM)
-        front_trimmed = front_pw - ESC_FRONT_TRIM_US;   /* backward */
+        front_trimmed = front_pw + ESC_FRONT_TRIM_US;   /* forward only */
 
     if (rear_trimmed  > CAR_ESC_MAX_PWM) rear_trimmed  = CAR_ESC_MAX_PWM;
     if (rear_trimmed  < CAR_ESC_MIN_PWM) rear_trimmed  = CAR_ESC_MIN_PWM;
