@@ -84,6 +84,14 @@ static void applyEscPulse(int pw) {
     applyEscPulses(pw, pw);
 }
 
+/* Hobbywing "brake then reverse" arming — only needed after forward motion.
+   From neutral, reverse works immediately. After forward, the ESC brakes on
+   the first backward pulse and needs a neutral gap before it will reverse.  */
+#define ESC_REVERSE_BRAKE_MS   300
+#define ESC_REVERSE_NEUTRAL_MS 150
+
+static bool needsReverseArm = false;  /* set when crossing neutral from forward */
+
 static void *motorThread(void *arg) {
     printf("[Motor] slew thread started (step=%d us / %d ms, dir-hold=%d ms, front-lag=%d steps)\n",
            ESC_SLEW_MAX_US, ESC_SLEW_INTERVAL_MS, ESC_DIR_CHANGE_HOLD_MS, ESC_FRONT_LAG_STEPS);
@@ -101,30 +109,57 @@ static void *motorThread(void *arg) {
 
         if (rearCur == target && frontCur == target) continue;
 
-        /* Hold neutral on direction change to protect motors */
-        bool crossingNeutral =
-            (rearCur > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM) ||
-            (rearCur < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
+        /* Detect direction crossing */
+        bool fwdToRev = (rearCur > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM);
+        bool revToFwd = (rearCur < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
 
-        if (crossingNeutral) {
+        if (fwdToRev || revToFwd) {
+            /* Coming from forward — will need brake-arm sequence for reverse */
+            if (fwdToRev) needsReverseArm = true;
+
             lagBufInit();
             applyEscPulse(CAR_ESC_NEUTRAL_PWM);
             pthread_mutex_lock(&motorMutex);
             currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
             currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
             pthread_mutex_unlock(&motorMutex);
-            printf("[Motor] direction change — holding neutral for %d ms\n", ESC_DIR_CHANGE_HOLD_MS);
+            printf("[Motor] direction change — neutral hold %d ms\n", ESC_DIR_CHANGE_HOLD_MS);
             usleep(ESC_DIR_CHANGE_HOLD_MS * 1000);
             continue;
         }
 
-        /* Slew rear toward target */
+        /* Hobbywing brake-then-reverse: only after coming from forward */
+        if (target < CAR_ESC_NEUTRAL_PWM && needsReverseArm) {
+            needsReverseArm = false;
+            printf("[Motor] reverse arm: brake %d ms → neutral %d ms\n",
+                   ESC_REVERSE_BRAKE_MS, ESC_REVERSE_NEUTRAL_MS);
+
+            /* Phase 1: backward pulse — ESC brakes and registers request */
+            applyEscPulse(target);
+            usleep(ESC_REVERSE_BRAKE_MS * 1000);
+
+            /* Phase 2: neutral gap — ESC resets, ready to reverse */
+            applyEscPulse(CAR_ESC_NEUTRAL_PWM);
+            usleep(ESC_REVERSE_NEUTRAL_MS * 1000);
+
+            /* Sync state — next iteration will slew normally into reverse */
+            lagBufInit();
+            pthread_mutex_lock(&motorMutex);
+            currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+            currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+            pthread_mutex_unlock(&motorMutex);
+            continue;
+        }
+
+        /* Reset arm flag when returning to forward or neutral */
+        if (target >= CAR_ESC_NEUTRAL_PWM) needsReverseArm = false;
+
+        /* Normal slew — rear leads, front follows with lag */
         int rearDelta = target - rearCur;
         if (rearDelta >  ESC_SLEW_MAX_US) rearDelta =  ESC_SLEW_MAX_US;
         if (rearDelta < -ESC_SLEW_MAX_US) rearDelta = -ESC_SLEW_MAX_US;
         rearCur += rearDelta;
 
-        /* Front axle follows rear with a lag */
         int frontTarget = lagBufPush(rearCur);
         int frontDelta  = frontTarget - frontCur;
         if (frontDelta >  ESC_SLEW_MAX_US) frontDelta =  ESC_SLEW_MAX_US;
