@@ -187,7 +187,8 @@ static void *watchdogThread(void *arg) {
             /* Immediate neutral — bypasses slew */
             pthread_mutex_lock(&motorMutex);
             targetEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
-            currentEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+            currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+            currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
             pthread_mutex_unlock(&motorMutex);
             applyEscPulse(CAR_ESC_NEUTRAL_PWM);
             pthread_mutex_lock(&watchdogMutex);
