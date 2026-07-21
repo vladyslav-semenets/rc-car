@@ -31,8 +31,8 @@
    Per-axle pulse width offset to compensate for ESC calibration differences.
    If the car pulls to one side on a straight line, tune these values.
    Typical range: -10 to +10 µs.                                            */
-#define ESC_FRONT_TRIM_US  0
-#define ESC_REAR_TRIM_US   0
+#define ESC_FRONT_TRIM_US  +15  /* front ESC deadband offset — tune until both axles start together */
+#define ESC_REAR_TRIM_US     0
 
 /* ── Rear-first drive (axle sequencing) ────────────────────────────────────
    The rear axle engages first; the front axle tracks the rear's *current*

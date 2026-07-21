@@ -52,15 +52,23 @@ static int lagBufPush(int rearValue) {
     return lagBuf[readIdx];
 }
 
-/* Apply separate pulse widths to front and rear ESCs with trim + hard clamp. */
+/* Apply separate pulse widths to front and rear ESCs with trim + hard clamp.
+   Trim is applied only when moving (not at neutral) so the front motor does
+   not creep at rest despite a non-zero ESC_FRONT_TRIM_US offset.           */
 static void applyEscPulses(int rear_pw, int front_pw) {
     if (rear_pw  > CAR_ESC_MAX_PWM) rear_pw  = CAR_ESC_MAX_PWM;
     if (rear_pw  < CAR_ESC_MIN_PWM) rear_pw  = CAR_ESC_MIN_PWM;
     if (front_pw > CAR_ESC_MAX_PWM) front_pw = CAR_ESC_MAX_PWM;
     if (front_pw < CAR_ESC_MIN_PWM) front_pw = CAR_ESC_MIN_PWM;
 
-    int rear_trimmed  = rear_pw  + ESC_REAR_TRIM_US;
-    int front_trimmed = front_pw + ESC_FRONT_TRIM_US;
+    int rear_trimmed  = rear_pw + ESC_REAR_TRIM_US;
+
+    /* Apply front trim only while moving — preserve exact neutral at rest */
+    int front_trimmed = front_pw;
+    if (front_pw > CAR_ESC_NEUTRAL_PWM)
+        front_trimmed = front_pw + ESC_FRONT_TRIM_US;   /* forward */
+    else if (front_pw < CAR_ESC_NEUTRAL_PWM)
+        front_trimmed = front_pw - ESC_FRONT_TRIM_US;   /* backward */
 
     if (rear_trimmed  > CAR_ESC_MAX_PWM) rear_trimmed  = CAR_ESC_MAX_PWM;
     if (rear_trimmed  < CAR_ESC_MIN_PWM) rear_trimmed  = CAR_ESC_MIN_PWM;
