@@ -34,6 +34,18 @@
 #define ESC_FRONT_TRIM_US  0
 #define ESC_REAR_TRIM_US   0
 
+/* ── Rear-first drive (axle sequencing) ────────────────────────────────────
+   The rear axle engages first; the front axle tracks the rear's *current*
+   pulse width (not the target), slewing at its own rate.  This means the
+   rear wheels always lead by at least one slew step (~10 ms) and typically
+   by ESC_FRONT_LAG_STEPS × ESC_SLEW_INTERVAL_MS ms at the start of a move.
+
+   On deceleration both axles stop together (front target = rear current,
+   so the front never overshoots the rear toward neutral).
+
+   Set ESC_FRONT_LAG_STEPS = 0 to disable and restore synchronous behaviour. */
+#define ESC_FRONT_LAG_STEPS  3   /* rear leads front by ~30 ms at ramp start */
+
 /* ── Camera gimbal GPIO pins ───────────────────────────────────────────────── */
 #define CAR_CAMERA_GIMBAL_PIN1 27
 #define CAR_CAMERA_GIMBAL_PIN3 22   /* pitch servo */

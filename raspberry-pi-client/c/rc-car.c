@@ -27,71 +27,107 @@ pid_t mediaMtxPid = -1;
    On direction change (crossing neutral 1500 µs) it holds neutral for
    ESC_DIR_CHANGE_HOLD_MS to prevent back-EMF damage.                        */
 
-static volatile int    targetEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
-static volatile int    currentEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+static volatile int    targetEscPulseWidth      = CAR_ESC_NEUTRAL_PWM;
+static volatile int    currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+static volatile int    currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
 static pthread_t       motorThreadHandle;
 static pthread_mutex_t motorMutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* Apply pulse width to both ESCs with per-axle trim and hard clamping. */
-static void applyEscPulse(int pw) {
-    /* Hard clamp — never exceed the physical range */
-    if (pw > CAR_ESC_MAX_PWM) pw = CAR_ESC_MAX_PWM;
-    if (pw < CAR_ESC_MIN_PWM) pw = CAR_ESC_MIN_PWM;
+/* Ring buffer: rear axle's recent pulse widths, used to delay the front axle.
+   Depth = ESC_FRONT_LAG_STEPS → front lags rear by that many 10 ms ticks.   */
+#define LAG_BUF_SIZE  16   /* must be >= ESC_FRONT_LAG_STEPS + 1              */
+static int  lagBuf[LAG_BUF_SIZE];
+static int  lagHead = 0;   /* write index */
 
-    /* Apply per-axle calibration offsets */
-    int front_pw = pw + ESC_FRONT_TRIM_US;
-    int rear_pw  = pw + ESC_REAR_TRIM_US;
+static void lagBufInit(void) {
+    for (int i = 0; i < LAG_BUF_SIZE; i++) lagBuf[i] = CAR_ESC_NEUTRAL_PWM;
+}
 
-    /* Re-clamp after offset */
-    if (front_pw > CAR_ESC_MAX_PWM) front_pw = CAR_ESC_MAX_PWM;
-    if (front_pw < CAR_ESC_MIN_PWM) front_pw = CAR_ESC_MIN_PWM;
+/* Push rear's new value and read the delayed front target. */
+static int lagBufPush(int rearValue) {
+    lagBuf[lagHead % LAG_BUF_SIZE] = rearValue;
+    lagHead++;
+    /* Read the value from ESC_FRONT_LAG_STEPS ticks ago */
+    int readIdx = (lagHead - 1 - ESC_FRONT_LAG_STEPS + LAG_BUF_SIZE * 2) % LAG_BUF_SIZE;
+    return lagBuf[readIdx];
+}
+
+/* Apply separate pulse widths to front and rear ESCs with trim + hard clamp. */
+static void applyEscPulses(int rear_pw, int front_pw) {
     if (rear_pw  > CAR_ESC_MAX_PWM) rear_pw  = CAR_ESC_MAX_PWM;
     if (rear_pw  < CAR_ESC_MIN_PWM) rear_pw  = CAR_ESC_MIN_PWM;
+    if (front_pw > CAR_ESC_MAX_PWM) front_pw = CAR_ESC_MAX_PWM;
+    if (front_pw < CAR_ESC_MIN_PWM) front_pw = CAR_ESC_MIN_PWM;
 
-    gpioServo(CAR_ESC_PIN,        front_pw);
-    gpioServo(CAR_ESC_SECOND_PIN, rear_pw);
+    int rear_trimmed  = rear_pw  + ESC_REAR_TRIM_US;
+    int front_trimmed = front_pw + ESC_FRONT_TRIM_US;
+
+    if (rear_trimmed  > CAR_ESC_MAX_PWM) rear_trimmed  = CAR_ESC_MAX_PWM;
+    if (rear_trimmed  < CAR_ESC_MIN_PWM) rear_trimmed  = CAR_ESC_MIN_PWM;
+    if (front_trimmed > CAR_ESC_MAX_PWM) front_trimmed = CAR_ESC_MAX_PWM;
+    if (front_trimmed < CAR_ESC_MIN_PWM) front_trimmed = CAR_ESC_MIN_PWM;
+
+    gpioServo(CAR_ESC_SECOND_PIN, rear_trimmed);   /* rear axle */
+    gpioServo(CAR_ESC_PIN,        front_trimmed);  /* front axle */
+}
+
+/* Convenience: set both axes to the same value (neutral / emergency stop). */
+static void applyEscPulse(int pw) {
+    applyEscPulses(pw, pw);
 }
 
 static void *motorThread(void *arg) {
-    printf("[Motor] slew thread started (step=%d us every %d ms, dir-hold=%d ms)\n",
-           ESC_SLEW_MAX_US, ESC_SLEW_INTERVAL_MS, ESC_DIR_CHANGE_HOLD_MS);
+    printf("[Motor] slew thread started (step=%d us / %d ms, dir-hold=%d ms, front-lag=%d steps)\n",
+           ESC_SLEW_MAX_US, ESC_SLEW_INTERVAL_MS, ESC_DIR_CHANGE_HOLD_MS, ESC_FRONT_LAG_STEPS);
+
+    lagBufInit();
 
     while (1) {
         usleep(ESC_SLEW_INTERVAL_MS * 1000);
 
         pthread_mutex_lock(&motorMutex);
-        int target  = targetEscPulseWidth;
-        int current = currentEscPulseWidth;
+        int target     = targetEscPulseWidth;
+        int rearCur    = currentRearEscPulseWidth;
+        int frontCur   = currentFrontEscPulseWidth;
         pthread_mutex_unlock(&motorMutex);
 
-        if (current == target) continue;
-
-        /* Hold neutral when crossing 1500 µs (direction change) */
+        /* ── Rear axle ─────────────────────────────────────────────────────── */
         bool crossingNeutral =
-            (current > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM) ||
-            (current < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
+            (rearCur > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM) ||
+            (rearCur < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
 
         if (crossingNeutral) {
+            /* Both axles go to neutral immediately on direction change */
+            lagBufInit();
             applyEscPulse(CAR_ESC_NEUTRAL_PWM);
             pthread_mutex_lock(&motorMutex);
-            currentEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+            currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+            currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
             pthread_mutex_unlock(&motorMutex);
             printf("[Motor] direction change — holding neutral for %d ms\n",
                    ESC_DIR_CHANGE_HOLD_MS);
             usleep(ESC_DIR_CHANGE_HOLD_MS * 1000);
-            continue;  /* next iteration will start moving toward target */
+            continue;
         }
 
-        /* Normal slew step */
-        int delta = target - current;
-        if (delta >  ESC_SLEW_MAX_US) delta =  ESC_SLEW_MAX_US;
-        if (delta < -ESC_SLEW_MAX_US) delta = -ESC_SLEW_MAX_US;
-        current += delta;
+        /* Slew rear toward target */
+        int rearDelta = target - rearCur;
+        if (rearDelta >  ESC_SLEW_MAX_US) rearDelta =  ESC_SLEW_MAX_US;
+        if (rearDelta < -ESC_SLEW_MAX_US) rearDelta = -ESC_SLEW_MAX_US;
+        rearCur += rearDelta;
 
-        applyEscPulse(current);
+        /* ── Front axle — follows rear with a lag ──────────────────────────── */
+        int frontTarget = lagBufPush(rearCur);   /* delayed rear value */
+        int frontDelta  = frontTarget - frontCur;
+        if (frontDelta >  ESC_SLEW_MAX_US) frontDelta =  ESC_SLEW_MAX_US;
+        if (frontDelta < -ESC_SLEW_MAX_US) frontDelta = -ESC_SLEW_MAX_US;
+        frontCur += frontDelta;
+
+        applyEscPulses(rearCur, frontCur);
 
         pthread_mutex_lock(&motorMutex);
-        currentEscPulseWidth = current;
+        currentRearEscPulseWidth  = rearCur;
+        currentFrontEscPulseWidth = frontCur;
         pthread_mutex_unlock(&motorMutex);
     }
     return NULL;
@@ -277,9 +313,11 @@ void move(const int speed, const char *direction) {
 
 /* Immediately set both ESCs to neutral, bypassing the slew ramp. */
 void setEscToNeutralPosition() {
+    lagBufInit();
     pthread_mutex_lock(&motorMutex);
-    targetEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
-    currentEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+    targetEscPulseWidth      = CAR_ESC_NEUTRAL_PWM;
+    currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+    currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
     pthread_mutex_unlock(&motorMutex);
     applyEscPulse(CAR_ESC_NEUTRAL_PWM);
     printf("[ESC] neutral\n");
