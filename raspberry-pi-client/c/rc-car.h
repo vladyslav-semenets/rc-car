@@ -26,6 +26,8 @@
 #define ESC_SLEW_MAX_US        25   /* max pulse width change per step (µs) */
 #define ESC_SLEW_INTERVAL_MS   10   /* motor thread step interval (ms)      */
 #define ESC_DIR_CHANGE_HOLD_MS 150  /* neutral hold duration on direction change (ms) */
+#define ESC_REVERSE_BRAKE_MS   250  /* ESC brake pulse duration (ms)  */
+#define ESC_REVERSE_NEUTRAL_MS 120  /* neutral gap before reverse (ms) */
 
 /* ── ESC calibration trim ──────────────────────────────────────────────────
    Per-axle pulse width offset to compensate for ESC calibration differences.
@@ -68,6 +70,11 @@
 #define MAVLINK_RESET_CAMERA_GIMBAL_COMMAND             12
 #define MAVLINK_STEERING_CALIBRATION_ON_COMMAND         13
 #define MAVLINK_STEERING_CALIBRATION_OFF_COMMAND        14
+/* param1=frontTrimUs param2=rearTrimUs param3=slewMaxUs param4=dirChangeHoldMs
+   param5=frontLagSteps param6=reverseBrakeMs param7=reverseNeutralMs         */
+#define MAVLINK_SET_MOTOR_CONFIG_COMMAND                15
+/* param1=centerAngle (degrees, e.g. 86) */
+#define MAVLINK_UNSTUCK_COMMAND                         16
 
 /* ── MPU6050 gyroscope constants ───────────────────────────────────────────── */
 #define MPU6050_ADDRESS      0x68   /* I2C address                          */

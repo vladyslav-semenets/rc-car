@@ -13,6 +13,7 @@
 #include "websocket.h"
 #include "rc-car.h"
 #include "udp.h"
+#include "serial.h"
 #include <gps.h>
 #define MODE_STR_NUM 4
 
@@ -26,6 +27,7 @@ void handleSignal(const int signal) {
         case SIGTERM:
         case SIGTSTP:
             isRunning = 0;
+            stopSerial();
             stopUdpServer();
             free(rcCar);
             gpioWrite(CAR_ESC_ENABLE_PIN, 1);
@@ -65,7 +67,26 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
-    createUdpServer(atoi(getenv("UDP_SERVER_PORT")), rcCar->processMavlinkCommands);
+    // Initialize Serial Port for LoRa USB Bridge if configured or available
+    const char *serialPort = getenv("SERIAL_PORT");
+    if (!serialPort) {
+        serialPort = "/dev/ttyACM0";
+    }
+    const char *baudEnv = getenv("SERIAL_BAUDRATE");
+    int baudRate = baudEnv ? atoi(baudEnv) : 115200;
+
+    initSerial(serialPort, baudRate, rcCar->processMavlinkCommands);
+
+    // Start UDP Server if port configured
+    const char *udpPort = getenv("UDP_SERVER_PORT");
+    if (udpPort) {
+        createUdpServer(atoi(udpPort), rcCar->processMavlinkCommands);
+    } else {
+        printf("[Main] UDP_SERVER_PORT not set, running in Serial-only mode\n");
+        while (isRunning) {
+            sleep(1);
+        }
+    }
 
     return 0;
 }

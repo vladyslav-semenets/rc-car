@@ -33,6 +33,16 @@ static volatile int    currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
 static pthread_t       motorThreadHandle;
 static pthread_mutex_t motorMutex = PTHREAD_MUTEX_INITIALIZER;
 
+/* Runtime motor config — updated via MAVLINK_SET_MOTOR_CONFIG_COMMAND (cmd 15).
+   Defaults match the #defines in rc-car.h.                                    */
+static volatile int cfg_frontTrimUs      = ESC_FRONT_TRIM_US;
+static volatile int cfg_rearTrimUs       = ESC_REAR_TRIM_US;
+static volatile int cfg_slewMaxUs        = ESC_SLEW_MAX_US;
+static volatile int cfg_dirChangeHoldMs  = ESC_DIR_CHANGE_HOLD_MS;
+static volatile int cfg_frontLagSteps    = ESC_FRONT_LAG_STEPS;
+static volatile int cfg_reverseBrakeMs   = ESC_REVERSE_BRAKE_MS;
+static volatile int cfg_reverseNeutralMs = ESC_REVERSE_NEUTRAL_MS;
+
 /* Ring buffer: rear axle's recent pulse widths, used to delay the front axle.
    Depth = ESC_FRONT_LAG_STEPS → front lags rear by that many 10 ms ticks.   */
 #define LAG_BUF_SIZE  16   /* must be >= ESC_FRONT_LAG_STEPS + 1              */
@@ -61,14 +71,14 @@ static void applyEscPulses(int rear_pw, int front_pw) {
     if (front_pw > CAR_ESC_MAX_PWM) front_pw = CAR_ESC_MAX_PWM;
     if (front_pw < CAR_ESC_MIN_PWM) front_pw = CAR_ESC_MIN_PWM;
 
-    int rear_trimmed  = rear_pw + ESC_REAR_TRIM_US;
+    int rear_trimmed  = rear_pw + cfg_rearTrimUs;
 
     /* Apply front trim only when going forward — compensates for the higher
        deadband on the front ESC. Backward trim is intentionally skipped
        because the rear ESC has its own deadband characteristics in reverse. */
     int front_trimmed = front_pw;
     if (front_pw > CAR_ESC_NEUTRAL_PWM)
-        front_trimmed = front_pw + ESC_FRONT_TRIM_US;   /* forward only */
+        front_trimmed = front_pw + cfg_frontTrimUs;   /* forward only */
 
     if (rear_trimmed  > CAR_ESC_MAX_PWM) rear_trimmed  = CAR_ESC_MAX_PWM;
     if (rear_trimmed  < CAR_ESC_MIN_PWM) rear_trimmed  = CAR_ESC_MIN_PWM;
@@ -87,14 +97,12 @@ static void applyEscPulse(int pw) {
 /* Hobbywing "brake then reverse" arming — only needed after forward motion.
    From neutral, reverse works immediately. After forward, the ESC brakes on
    the first backward pulse and needs a neutral gap before it will reverse.  */
-#define ESC_REVERSE_BRAKE_MS   300
-#define ESC_REVERSE_NEUTRAL_MS 150
 
-static bool needsReverseArm = false;  /* set when crossing neutral from forward */
+static bool reverseArmed = false;  /* true once brake sequence is done */
 
 static void *motorThread(void *arg) {
     printf("[Motor] slew thread started (step=%d us / %d ms, dir-hold=%d ms, front-lag=%d steps)\n",
-           ESC_SLEW_MAX_US, ESC_SLEW_INTERVAL_MS, ESC_DIR_CHANGE_HOLD_MS, ESC_FRONT_LAG_STEPS);
+           cfg_slewMaxUs, ESC_SLEW_INTERVAL_MS, cfg_dirChangeHoldMs, cfg_frontLagSteps);
 
     lagBufInit();
 
@@ -109,40 +117,41 @@ static void *motorThread(void *arg) {
 
         if (rearCur == target && frontCur == target) continue;
 
-        /* Detect direction crossing */
-        bool fwdToRev = (rearCur > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM);
-        bool revToFwd = (rearCur < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
+        /* Reset reverse arm when going forward or neutral */
+        if (target >= CAR_ESC_NEUTRAL_PWM) reverseArmed = false;
 
-        if (fwdToRev || revToFwd) {
-            /* Coming from forward — will need brake-arm sequence for reverse */
-            if (fwdToRev) needsReverseArm = true;
+        /* Detect direction crossing — hold neutral to protect motors.
+           Skipped when cfg_dirChangeHoldMs == 0 (disabled mode).           */
+        bool crossingNeutral =
+            (rearCur > CAR_ESC_NEUTRAL_PWM && target < CAR_ESC_NEUTRAL_PWM) ||
+            (rearCur < CAR_ESC_NEUTRAL_PWM && target > CAR_ESC_NEUTRAL_PWM);
 
+        if (crossingNeutral && cfg_dirChangeHoldMs > 0) {
+            reverseArmed = false;
             lagBufInit();
             applyEscPulse(CAR_ESC_NEUTRAL_PWM);
             pthread_mutex_lock(&motorMutex);
             currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
             currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
             pthread_mutex_unlock(&motorMutex);
-            printf("[Motor] direction change — neutral hold %d ms\n", ESC_DIR_CHANGE_HOLD_MS);
-            usleep(ESC_DIR_CHANGE_HOLD_MS * 1000);
+            printf("[Motor] direction change — neutral hold %d ms\n", cfg_dirChangeHoldMs);
+            usleep(cfg_dirChangeHoldMs * 1000);
             continue;
         }
 
-        /* Hobbywing brake-then-reverse: only after coming from forward */
-        if (target < CAR_ESC_NEUTRAL_PWM && needsReverseArm) {
-            needsReverseArm = false;
+        /* Hobbywing brake-then-reverse.
+           Skipped when cfg_reverseBrakeMs == 0 (disabled mode).            */
+        if (target < CAR_ESC_NEUTRAL_PWM && !reverseArmed && cfg_reverseBrakeMs > 0) {
+            reverseArmed = true;
             printf("[Motor] reverse arm: brake %d ms → neutral %d ms\n",
-                   ESC_REVERSE_BRAKE_MS, ESC_REVERSE_NEUTRAL_MS);
+                   cfg_reverseBrakeMs, cfg_reverseNeutralMs);
 
-            /* Phase 1: backward pulse — ESC brakes and registers request */
             applyEscPulse(target);
-            usleep(ESC_REVERSE_BRAKE_MS * 1000);
+            usleep(cfg_reverseBrakeMs * 1000);
 
-            /* Phase 2: neutral gap — ESC resets, ready to reverse */
             applyEscPulse(CAR_ESC_NEUTRAL_PWM);
-            usleep(ESC_REVERSE_NEUTRAL_MS * 1000);
+            usleep(cfg_reverseNeutralMs * 1000);
 
-            /* Sync state — next iteration will slew normally into reverse */
             lagBufInit();
             pthread_mutex_lock(&motorMutex);
             currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
@@ -150,20 +159,18 @@ static void *motorThread(void *arg) {
             pthread_mutex_unlock(&motorMutex);
             continue;
         }
-
-        /* Reset arm flag when returning to forward or neutral */
-        if (target >= CAR_ESC_NEUTRAL_PWM) needsReverseArm = false;
+        if (cfg_reverseBrakeMs == 0) reverseArmed = true; /* skip arming when disabled */
 
         /* Normal slew — rear leads, front follows with lag */
         int rearDelta = target - rearCur;
-        if (rearDelta >  ESC_SLEW_MAX_US) rearDelta =  ESC_SLEW_MAX_US;
-        if (rearDelta < -ESC_SLEW_MAX_US) rearDelta = -ESC_SLEW_MAX_US;
+        if (rearDelta >  cfg_slewMaxUs) rearDelta =  cfg_slewMaxUs;
+        if (rearDelta < -cfg_slewMaxUs) rearDelta = -cfg_slewMaxUs;
         rearCur += rearDelta;
 
         int frontTarget = lagBufPush(rearCur);
         int frontDelta  = frontTarget - frontCur;
-        if (frontDelta >  ESC_SLEW_MAX_US) frontDelta =  ESC_SLEW_MAX_US;
-        if (frontDelta < -ESC_SLEW_MAX_US) frontDelta = -ESC_SLEW_MAX_US;
+        if (frontDelta >  cfg_slewMaxUs) frontDelta =  cfg_slewMaxUs;
+        if (frontDelta < -cfg_slewMaxUs) frontDelta = -cfg_slewMaxUs;
         frontCur += frontDelta;
 
         applyEscPulses(rearCur, frontCur);
@@ -436,6 +443,105 @@ void cameraGimbalSetPitch(const float degrees) {
     gpioServo(CAR_CAMERA_GIMBAL_PIN3, pulseWidth);
 }
 
+/* ── Unstuck (self-recovery rocking) ─────────────────────────────────────────
+   Rocks the car forward/backward with escalating power to free it from
+   obstacles. Runs in a background thread so it doesn't block MAVLink.
+   Any FORWARD or BACKWARD command cancels it immediately.                   */
+
+static volatile bool    unstuckRunning = false;
+static pthread_t        unstuckThreadHandle;
+
+typedef struct { float centerAngle; } UnstuckArgs;
+
+static void *unstuckThread(void *arg) {
+    UnstuckArgs *a = (UnstuckArgs *)arg;
+    float center = a->centerAngle;
+    free(a);
+
+    printf("[Unstuck] starting, center=%.1f deg\n", center);
+
+    /* Center steering first */
+    turnTo(center);
+    usleep(300000);
+
+    /* 3 cycles with escalating power and duration */
+    typedef struct { int speed; int fwdMs; int revMs; int neutralMs; } Cycle;
+    const Cycle cycles[] = {
+        { 40, 400, 400, 200 },
+        { 70, 500, 500, 200 },
+        { 100, 700, 700, 250 },
+    };
+
+    for (int i = 0; i < 3 && unstuckRunning; i++) {
+        const Cycle *c = &cycles[i];
+        printf("[Unstuck] cycle %d — speed=%d%%\n", i + 1, c->speed);
+
+        /* Forward */
+        int fwdTarget = CAR_ESC_NEUTRAL_PWM +
+            (int)((float)c->speed / 100.0f * (CAR_ESC_MAX_PWM - CAR_ESC_NEUTRAL_PWM));
+        pthread_mutex_lock(&motorMutex);
+        targetEscPulseWidth = fwdTarget;
+        pthread_mutex_unlock(&motorMutex);
+        usleep(c->fwdMs * 1000);
+        if (!unstuckRunning) break;
+
+        /* Neutral gap */
+        pthread_mutex_lock(&motorMutex);
+        targetEscPulseWidth      = CAR_ESC_NEUTRAL_PWM;
+        currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+        currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+        pthread_mutex_unlock(&motorMutex);
+        applyEscPulse(CAR_ESC_NEUTRAL_PWM);
+        usleep(c->neutralMs * 1000);
+        if (!unstuckRunning) break;
+
+        /* Backward — skip brake arm, go direct */
+        int revTarget = CAR_ESC_NEUTRAL_PWM -
+            (int)((float)c->speed / 100.0f * (CAR_ESC_NEUTRAL_PWM - CAR_ESC_MIN_PWM));
+        reverseArmed = true;  /* skip Hobbywing brake sequence during unstuck */
+        pthread_mutex_lock(&motorMutex);
+        targetEscPulseWidth = revTarget;
+        pthread_mutex_unlock(&motorMutex);
+        usleep(c->revMs * 1000);
+        if (!unstuckRunning) break;
+
+        /* Neutral gap */
+        pthread_mutex_lock(&motorMutex);
+        targetEscPulseWidth      = CAR_ESC_NEUTRAL_PWM;
+        currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+        currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+        pthread_mutex_unlock(&motorMutex);
+        applyEscPulse(CAR_ESC_NEUTRAL_PWM);
+        usleep(c->neutralMs * 1000);
+    }
+
+    /* Always end at neutral */
+    pthread_mutex_lock(&motorMutex);
+    targetEscPulseWidth      = CAR_ESC_NEUTRAL_PWM;
+    currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+    currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
+    pthread_mutex_unlock(&motorMutex);
+    applyEscPulse(CAR_ESC_NEUTRAL_PWM);
+
+    unstuckRunning = false;
+    printf("[Unstuck] done\n");
+    return NULL;
+}
+
+static void startUnstuck(float centerAngle) {
+    if (unstuckRunning) {
+        /* Cancel if already running */
+        unstuckRunning = false;
+        printf("[Unstuck] cancelled\n");
+        return;
+    }
+    unstuckRunning = true;
+    UnstuckArgs *args = malloc(sizeof(UnstuckArgs));
+    args->centerAngle = centerAngle;
+    pthread_create(&unstuckThreadHandle, NULL, unstuckThread, args);
+    pthread_detach(unstuckThreadHandle);
+}
+
 /* ── MAVLink command dispatcher ──────────────────────────────────────────── */
 
 void processMavlinkCommands(mavlink_message_t *msg) {
@@ -488,11 +594,31 @@ void processMavlinkCommands(mavlink_message_t *msg) {
                 pthread_cancel(steeringWheelCorrectionThreadHandle);
                 break;
 
+            case MAVLINK_UNSTUCK_COMMAND:
+                startUnstuck(cmd.param1);
+                break;
+
+            case MAVLINK_SET_MOTOR_CONFIG_COMMAND:
+                cfg_frontTrimUs      = (int)cmd.param1;
+                cfg_rearTrimUs       = (int)cmd.param2;
+                cfg_slewMaxUs        = (int)cmd.param3;
+                cfg_dirChangeHoldMs  = (int)cmd.param4;
+                cfg_frontLagSteps    = (int)cmd.param5;
+                cfg_reverseBrakeMs   = (int)cmd.param6;
+                cfg_reverseNeutralMs = (int)cmd.param7;
+                printf("[Config] frontTrim=%d rearTrim=%d slew=%d dirHold=%d lag=%d brake=%d neutral=%d\n",
+                       cfg_frontTrimUs, cfg_rearTrimUs, cfg_slewMaxUs,
+                       cfg_dirChangeHoldMs, cfg_frontLagSteps,
+                       cfg_reverseBrakeMs, cfg_reverseNeutralMs);
+                break;
+
             case MAVLINK_FORWARD_COMMAND:
+                if (unstuckRunning) { unstuckRunning = false; }
                 move((int)cmd.param1, "forward");
                 break;
 
             case MAVLINK_BACKWARD_COMMAND:
+                if (unstuckRunning) { unstuckRunning = false; }
                 move((int)cmd.param1, "backward");
                 break;
 
