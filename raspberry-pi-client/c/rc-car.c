@@ -187,7 +187,7 @@ static void *motorThread(void *arg) {
    Waits for MAVLink HEARTBEAT every 100 ms from the client.
    If no heartbeat arrives for WATCHDOG_TIMEOUT_MS → emergency stop (once).
    Resets automatically when heartbeat is restored.                          */
-#define WATCHDOG_TIMEOUT_MS 2000
+#define WATCHDOG_TIMEOUT_MS 500
 
 static volatile time_t  lastHbSec     = 0;
 static volatile long    lastHbNsec    = 0;
@@ -203,17 +203,17 @@ static void touchWatchdog() {
     lastHbNsec = ts.tv_nsec;
     if (watchdogFired) {
         watchdogFired = false;
-        printf("[Watchdog] heartbeat restored — car ready\n");
+        printf("[Watchdog] signal restored — car ready\n");
     }
     pthread_mutex_unlock(&watchdogMutex);
 }
 
 static void *watchdogThread(void *arg) {
-    printf("[Watchdog] started, timeout=%d ms\n", WATCHDOG_TIMEOUT_MS);
+    printf("[Watchdog] started, failsafe timeout=%d ms\n", WATCHDOG_TIMEOUT_MS);
     touchWatchdog();  /* seed the timer on startup */
 
     while (1) {
-        usleep(100000);  /* check every 100 ms */
+        usleep(50000);  /* check every 50 ms */
 
         struct timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
@@ -225,14 +225,16 @@ static void *watchdogThread(void *arg) {
         pthread_mutex_unlock(&watchdogMutex);
 
         if (elapsed_ms > WATCHDOG_TIMEOUT_MS && !alreadyFired) {
-            printf("[Watchdog] no heartbeat for %ld ms — emergency stop\n", elapsed_ms);
+            printf("[Watchdog] Signal lost for %ld ms — FAILSAFE EMERGENCY STOP TRIGGERED\n", elapsed_ms);
             /* Immediate neutral — bypasses slew */
+            lagBufInit();
             pthread_mutex_lock(&motorMutex);
-            targetEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
+            targetEscPulseWidth       = CAR_ESC_NEUTRAL_PWM;
             currentRearEscPulseWidth  = CAR_ESC_NEUTRAL_PWM;
             currentFrontEscPulseWidth = CAR_ESC_NEUTRAL_PWM;
             pthread_mutex_unlock(&motorMutex);
             applyEscPulse(CAR_ESC_NEUTRAL_PWM);
+
             pthread_mutex_lock(&watchdogMutex);
             watchdogFired = true;
             pthread_mutex_unlock(&watchdogMutex);
@@ -545,9 +547,11 @@ static void startUnstuck(float centerAngle) {
 /* ── MAVLink command dispatcher ──────────────────────────────────────────── */
 
 void processMavlinkCommands(mavlink_message_t *msg) {
-    /* MAVLink HEARTBEAT (msg_id=0) — watchdog disabled for now */
+    /* Touch watchdog on every received MAVLink frame (heartbeat or command) */
+    touchWatchdog();
+
+    /* MAVLink HEARTBEAT (msg_id=0) */
     if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT) {
-        // touchWatchdog();
         return;
     }
 
@@ -663,10 +667,10 @@ RcCar *newRcCar() {
         fprintf(stderr, "[Motor] failed to create slew thread\n");
     }
 
-    /* Watchdog disabled — enable when heartbeat is wired up on the client
+    /* Start the failsafe watchdog thread */
     if (pthread_create(&watchdogThreadHandle, NULL, watchdogThread, NULL) != 0) {
         fprintf(stderr, "[Watchdog] failed to create thread\n");
-    } */
+    }
 
     return rcCar;
 }
