@@ -671,11 +671,76 @@ void processMavlinkCommands(mavlink_message_t *msg) {
     }
 }
 
+/* ── Compact 8-Byte High-Speed RC Packet Dispatcher ───────────────────────── */
+
+static uint8_t lastFlags = 0;
+
+void processCompactRcPacket(const CompactRcPacket *pkt) {
+    if (!pkt) return;
+
+    /* 1. Throttle (-100 to +100) */
+    if (pkt->throttle > 0) {
+        if (unstuckRunning) unstuckRunning = false;
+        move((int)pkt->throttle, "forward");
+    } else if (pkt->throttle < 0) {
+        if (unstuckRunning) unstuckRunning = false;
+        move((int)(-pkt->throttle), "backward");
+    } else {
+        setEscToNeutralPosition();
+    }
+
+    /* 2. Steering (0 to 180 degrees) */
+    float steerAngle = (float)pkt->steering;
+    if (fabs(steerAngle - currentSteeringCenter) > 2.0f) {
+        isCarTurning = true;
+    } else {
+        isCarTurning = false;
+    }
+    turnTo(steerAngle);
+
+    /* 3. Gimbal Pan / Tilt */
+    cameraGimbalSetYaw((float)pkt->gimbalYaw);
+    cameraGimbalSetPitch((float)pkt->gimbalPitch);
+
+    /* 4. Flags (bit 0: Gyro calibration) */
+    bool gyroRequested = (pkt->flags & 0x01) != 0;
+    bool gyroWasOn = (lastFlags & 0x01) != 0;
+    if (gyroRequested && !gyroWasOn) {
+        /* Turn Gyro ON */
+        MPU6050Handle = i2cOpen(1, MPU6050_ADDRESS, 0);
+        if (MPU6050Handle >= 0) {
+            initMPU6050(MPU6050Handle);
+            calibrateMPU6050(MPU6050Handle, 100);
+            pthread_create(&steeringWheelCorrectionThreadHandle, NULL,
+                           steeringWheelCorrectionThread, &MPU6050Handle);
+            printf("[Gyro] Active ESP stabilization enabled\n");
+        }
+    } else if (!gyroRequested && gyroWasOn) {
+        /* Turn Gyro OFF */
+        if (MPU6050Handle >= 0) {
+            deinitMPU6050(MPU6050Handle);
+            pthread_cancel(steeringWheelCorrectionThreadHandle);
+            MPU6050Handle = -1;
+            printf("[Gyro] Stabilization disabled\n");
+        }
+    }
+
+    /* Bit 1: Unstuck */
+    bool unstuckRequested = (pkt->flags & 0x02) != 0;
+    bool unstuckWasOn = (lastFlags & 0x02) != 0;
+    if (unstuckRequested && !unstuckWasOn) {
+        startUnstuck(currentSteeringCenter);
+    }
+
+    lastFlags = pkt->flags;
+}
+
 /* ── Initialisation ──────────────────────────────────────────────────────── */
 
 RcCar *newRcCar() {
     RcCar *rcCar = malloc(sizeof(RcCar));
     rcCar->processMavlinkCommands = processMavlinkCommands;
+    rcCar->processCompactRcPacket = processCompactRcPacket;
 
     /* Start the motor slew-rate thread */
     if (pthread_create(&motorThreadHandle, NULL, motorThread, NULL) != 0) {

@@ -75,7 +75,7 @@ int main() {
     const char *baudEnv = getenv("SERIAL_BAUDRATE");
     int baudRate = baudEnv ? atoi(baudEnv) : 115200;
 
-    initSerial(serialPort, baudRate, rcCar->processMavlinkCommands);
+    initSerialDual(serialPort, baudRate, rcCar->processMavlinkCommands, rcCar->processCompactRcPacket);
 
     // Start UDP Server if port configured
     const char *udpPort = getenv("UDP_SERVER_PORT");

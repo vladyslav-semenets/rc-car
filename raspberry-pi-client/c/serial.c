@@ -13,6 +13,22 @@ static pthread_t readerThreadHandle;
 static volatile bool readerRunning = false;
 static pthread_mutex_t writeMutex = PTHREAD_MUTEX_INITIALIZER;
 static MavlinkMessageCallback msgCallback = NULL;
+static CompactRcPacketCallback compactCallback = NULL;
+
+uint8_t computeCrc8(const uint8_t *data, size_t len) {
+    uint8_t crc = 0x00;
+    for (size_t i = 0; i < len; i++) {
+        crc ^= data[i];
+        for (int j = 0; j < 8; j++) {
+            if (crc & 0x80) {
+                crc = (crc << 1) ^ 0x07;
+            } else {
+                crc <<= 1;
+            }
+        }
+    }
+    return crc;
+}
 
 static speed_t getSpeed(int baud) {
     switch (baud) {
@@ -66,8 +82,8 @@ static int configurePort(int fd, int baud) {
     tty.c_oflag &= ~OPOST;         // Prevent special interpretation of output bytes
     tty.c_oflag &= ~ONLCR;         // Prevent conversion of newline to CR/LF
 
-    // Blocking read with 100ms timeout
-    tty.c_cc[VTIME] = 1;           // Wait for up to 100ms (1 decisecond)
+    // Blocking read with 50ms timeout
+    tty.c_cc[VTIME] = 1;           // Wait for up to 100ms
     tty.c_cc[VMIN]  = 0;           // Return as soon as any data is received
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
@@ -83,10 +99,13 @@ static int configurePort(int fd, int baud) {
 static void *serialReaderThread(void *arg) {
     (void)arg;
     uint8_t buffer[256];
+    uint8_t rcBuffer[RC_COMPACT_LEN];
+    int rcIndex = 0;
+
     mavlink_message_t msg;
     mavlink_status_t status;
 
-    printf("[Serial] Reader thread active\n");
+    printf("[Serial] Reader thread active (Dual-Mode: Compact 8B + MAVLink)\n");
 
     while (readerRunning) {
         if (serialFd < 0) {
@@ -99,6 +118,30 @@ static void *serialReaderThread(void *arg) {
         if (bytesRead > 0) {
             for (ssize_t i = 0; i < bytesRead; i++) {
                 uint8_t byte = buffer[i];
+
+                // ── 1. Compact 8-byte RC Packet Parser (0xAA) ────────────────
+                if (rcIndex == 0) {
+                    if (byte == RC_COMPACT_SYNC) {
+                        rcBuffer[rcIndex++] = byte;
+                    }
+                } else {
+                    rcBuffer[rcIndex++] = byte;
+                    if (rcIndex == RC_COMPACT_LEN) {
+                        // Check CRC-8
+                        if (computeCrc8(rcBuffer, RC_COMPACT_LEN - 1) == rcBuffer[RC_COMPACT_LEN - 1]) {
+                            if (compactCallback != NULL) {
+                                compactCallback((const CompactRcPacket *)rcBuffer);
+                            }
+                            rcIndex = 0;
+                            continue; // Successfully handled as Compact RC packet
+                        } else {
+                            // CRC mismatch — reset and fall back to MAVLink
+                            rcIndex = 0;
+                        }
+                    }
+                }
+
+                // ── 2. Fallback MAVLink v1/v2 Parser ─────────────────────────
                 if (mavlink_parse_char(MAVLINK_COMM_0, byte, &msg, &status)) {
                     if (msgCallback != NULL) {
                         msgCallback(&msg);
@@ -117,13 +160,14 @@ static void *serialReaderThread(void *arg) {
     return NULL;
 }
 
-int initSerial(const char *port, int baudRate, MavlinkMessageCallback callback) {
+int initSerialDual(const char *port, int baudRate, MavlinkMessageCallback mavlinkCb, CompactRcPacketCallback compactCb) {
     if (!port) {
         fprintf(stderr, "[Serial] Error: port path is NULL\n");
         return -1;
     }
 
-    msgCallback = callback;
+    msgCallback = mavlinkCb;
+    compactCallback = compactCb;
 
     printf("[Serial] Opening %s at %d baud...\n", port, baudRate);
     serialFd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
@@ -139,26 +183,34 @@ int initSerial(const char *port, int baudRate, MavlinkMessageCallback callback) 
         return -1;
     }
 
+    printf("[Serial] Connected successfully on %s\n", port);
+
     readerRunning = true;
     if (pthread_create(&readerThreadHandle, NULL, serialReaderThread, NULL) != 0) {
-        fprintf(stderr, "[Serial] Failed to create reader thread\n");
+        perror("[Serial] Failed to create reader thread");
         close(serialFd);
         serialFd = -1;
         readerRunning = false;
         return -1;
     }
 
-    printf("[Serial] Connected successfully on %s\n", port);
     return 0;
 }
 
+int initSerial(const char *port, int baudRate, MavlinkMessageCallback callback) {
+    return initSerialDual(port, baudRate, callback, NULL);
+}
+
 void stopSerial(void) {
-    readerRunning = false;
-    if (serialFd >= 0) {
+    if (readerRunning) {
+        readerRunning = false;
         pthread_join(readerThreadHandle, NULL);
+    }
+
+    if (serialFd >= 0) {
         close(serialFd);
         serialFd = -1;
-        printf("[Serial] Closed connection\n");
+        printf("[Serial] Port closed\n");
     }
 }
 
@@ -168,16 +220,24 @@ int sendSerialBinary(const uint8_t *data, uint16_t len) {
     }
 
     pthread_mutex_lock(&writeMutex);
-    ssize_t written = write(serialFd, data, len);
-    pthread_mutex_unlock(&writeMutex);
-
-    if (written < 0) {
-        perror("[Serial] write error");
-        return -1;
+    ssize_t totalWritten = 0;
+    while (totalWritten < len) {
+        ssize_t written = write(serialFd, data + totalWritten, len - totalWritten);
+        if (written < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+                usleep(1000);
+                continue;
+            }
+            perror("[Serial] write error");
+            pthread_mutex_unlock(&writeMutex);
+            return -1;
+        }
+        totalWritten += written;
     }
-    return (int)written;
+    pthread_mutex_unlock(&writeMutex);
+    return (int)totalWritten;
 }
 
 bool isSerialConnected(void) {
-    return (serialFd >= 0 && readerRunning);
+    return serialFd >= 0 && readerRunning;
 }

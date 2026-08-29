@@ -85,9 +85,12 @@
 #define MAX_CORRECTION_ANGLE 20.0   /* max steering correction angle (deg)  */
 #define NEUTRAL_ANGLE        86.0   /* straight-ahead servo angle (deg)     */
 
+#include "serial.h"
+
 typedef struct RcCar {
     void (*processWebSocketEvents)(const char *message);
     void (*processMavlinkCommands)(mavlink_message_t *msg);
+    void (*processCompactRcPacket)(const CompactRcPacket *pkt);
 } RcCar;
 
 RcCar *newRcCar();
