@@ -78,10 +78,12 @@
 
 /* ── MPU6050 gyroscope constants ───────────────────────────────────────────── */
 #define MPU6050_ADDRESS      0x68   /* I2C address                          */
+#define GYRO_XOUT_H          0x43   /* X-axis gyro output register (high)   */
+#define GYRO_YOUT_H          0x45   /* Y-axis gyro output register (high)   */
 #define GYRO_ZOUT_H          0x47   /* Z-axis gyro output register (high)   */
 #define GYRO_SENSITIVITY     131.0  /* LSB / (deg/s) at ±250 deg/s range    */
 #define MAX_CORRECTION_ANGLE 20.0   /* max steering correction angle (deg)  */
-#define NEUTRAL_ANGLE        90.0   /* straight-ahead servo angle (deg)     */
+#define NEUTRAL_ANGLE        86.0   /* straight-ahead servo angle (deg)     */
 
 typedef struct RcCar {
     void (*processWebSocketEvents)(const char *message);

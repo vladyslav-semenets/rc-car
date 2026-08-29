@@ -258,10 +258,11 @@ static void *watchdogThread(void *arg) {
 
 /* ── MPU6050 gyroscope ───────────────────────────────────────────────────── */
 
-float gyroZOffset = 0.0;
-float scalingFactor = 15.0;
-float deadZone = 0.5;
+float gyroYawOffset = 0.0;
+float scalingFactor = 0.40;   /* deg of counter-steer per deg/s of yaw rate */
+float deadZone = 1.0;         /* ignore small noise (< 1 deg/s) */
 int   MPU6050Handle = -1;
+float currentSteeringCenter = 86.0;
 
 bool  isCarTurning = false;
 float correctionAngle = 0.0;
@@ -286,17 +287,17 @@ short readMPU6050Data(int handle, int reg) {
     return (short)((high << 8) | low);
 }
 
-/* Collect `samples` readings to compute the gyro Z-axis bias offset. */
+/* Collect `samples` readings to compute the gyro Y-axis bias offset (vertical mounting). */
 void calibrateMPU6050(int handle, int samples) {
-    printf("[MPU6050] Calibrating gyro...\n");
-    float sumZ = 0.0;
+    printf("[MPU6050] Calibrating Y-axis gyro (vertical heatsink mount)...\n");
+    float sumY = 0.0;
     for (int i = 0; i < samples; i++) {
-        short gyroZ = readMPU6050Data(handle, GYRO_ZOUT_H);
-        sumZ += gyroZ / GYRO_SENSITIVITY;
+        short gyroY = readMPU6050Data(handle, GYRO_YOUT_H);
+        sumY += gyroY / GYRO_SENSITIVITY;
         usleep(10000);
     }
-    gyroZOffset = sumZ / samples;
-    printf("[MPU6050] Gyro Z offset: %.2f deg/s\n", gyroZOffset);
+    gyroYawOffset = sumY / samples;
+    printf("[MPU6050] Gyro Yaw offset: %.2f deg/s\n", gyroYawOffset);
 }
 
 /* Convert steering angle (0–180 deg) to servo pulse width and send. */
@@ -308,22 +309,23 @@ void turnTo(const float degrees) {
     printf("[Steering] deg=%.1f pwm=%d us (pin %d)\n", degrees, pulseWidth, CAR_TURNS_SERVO_PIN);
 }
 
-/* Background thread: reads gyro Z and applies a low-pass steering correction
-   to keep the car driving straight (disabled while actively turning).       */
+/* Background thread: reads gyro Y (vertical mounting) and applies a low-pass steering correction
+   to keep the car driving straight (disabled while actively turning). */
 void *steeringWheelCorrectionThread(void *arg) {
     int handle = *(int *)arg;
 
     while (1) {
         if (isCarTurning) {
-            continue;  /* skip correction while driver is steering */
+            usleep(20000);  /* sleep while driver is steering to prevent 100% CPU core usage */
+            continue;
         }
 
-        short gyroZ = readMPU6050Data(handle, GYRO_ZOUT_H);
-        float angularVelocityZ = (gyroZ / GYRO_SENSITIVITY) - gyroZOffset;
+        short gyroY = readMPU6050Data(handle, GYRO_YOUT_H);
+        float angularVelocityYaw = (gyroY / GYRO_SENSITIVITY) - gyroYawOffset;
         float tempCorrectionAngle = 0.0;
 
-        if (fabs(angularVelocityZ) > deadZone) {
-            tempCorrectionAngle = -angularVelocityZ * scalingFactor;
+        if (fabs(angularVelocityYaw) > deadZone) {
+            tempCorrectionAngle = -angularVelocityYaw * scalingFactor;
         }
 
         /* Clamp correction to safe range */
@@ -332,13 +334,13 @@ void *steeringWheelCorrectionThread(void *arg) {
 
         pthread_mutex_lock(&steeringWheelCorrectionMutex);
 
-        /* Low-pass filter (alpha=0.05) to smooth out gyro noise */
+        /* Low-pass filter (alpha=0.10) to smooth out gyro noise */
         correctionAngle = previousCorrectionAngle +
-                          (tempCorrectionAngle - previousCorrectionAngle) * 0.05f;
+                          (tempCorrectionAngle - previousCorrectionAngle) * 0.10f;
         previousCorrectionAngle = correctionAngle;
 
-        float currentServoAngle = NEUTRAL_ANGLE + correctionAngle;
-        if (currentServoAngle > 180.0f) currentServoAngle = 180.0f;
+        float currentServoAngle = currentSteeringCenter + correctionAngle;
+        if (currentServoAngle > 140.0f) currentServoAngle = 140.0f;
         if (currentServoAngle <   0.0f) currentServoAngle =   0.0f;
 
         turnTo(currentServoAngle);
@@ -572,6 +574,7 @@ void processMavlinkCommands(mavlink_message_t *msg) {
 
         switch (cmd.command) {
             case MAVLINK_INIT_COMMAND:
+                currentSteeringCenter = cmd.param2;
                 turnTo(cmd.param2);
                 enableDisableEsc();
                 setEscToNeutralPosition();
@@ -585,6 +588,7 @@ void processMavlinkCommands(mavlink_message_t *msg) {
                 break;
 
             case MAVLINK_RESET_TURNS_COMMAND:
+                currentSteeringCenter = cmd.param1;
                 isCarTurning = false;
                 turnTo(cmd.param1);
                 break;
@@ -600,8 +604,8 @@ void processMavlinkCommands(mavlink_message_t *msg) {
                                    steeringWheelCorrectionThread, &MPU6050Handle) != 0) {
                     printf("[MPU6050] failed to create correction thread\n");
                 }
-                turnTo(90.0f);   /* center steering before correction starts */
-                usleep(1000000);
+                turnTo(currentSteeringCenter);   /* center steering before correction starts */
+                usleep(500000);
                 break;
 
             case MAVLINK_STEERING_CALIBRATION_OFF_COMMAND:
