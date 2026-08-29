@@ -17,6 +17,7 @@
 
 #include "rc-car.h"
 #include "websocket.h"
+#include "serial.h"
 
 pid_t mediaMtxPid = -1;
 
@@ -552,6 +553,18 @@ void processMavlinkCommands(mavlink_message_t *msg) {
 
     /* MAVLink HEARTBEAT (msg_id=0) */
     if (msg->msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+        return;
+    }
+
+    /* MAVLink PING (msg_id=4) — echo back to sender to measure latency */
+    if (msg->msgid == MAVLINK_MSG_ID_PING) {
+        mavlink_ping_t ping;
+        mavlink_msg_ping_decode(msg, &ping);
+        mavlink_message_t reply;
+        mavlink_msg_ping_pack(1, 1, &reply, ping.time_usec, ping.seq, msg->sysid, msg->compid);
+        uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+        uint16_t len = mavlink_msg_to_send_buffer(buf, &reply);
+        sendSerialBinary(buf, len);
         return;
     }
 
