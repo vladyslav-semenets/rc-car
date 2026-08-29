@@ -162,16 +162,20 @@ static void *motorThread(void *arg) {
         }
         if (cfg_reverseBrakeMs == 0) reverseArmed = true; /* skip arming when disabled */
 
-        /* Normal slew — rear leads, front follows with lag */
+        /* Normal slew — rear leads, front follows with lag.
+           When stopping (target == CAR_ESC_NEUTRAL_PWM), decelerate 3x faster
+           so the car stops promptly without coasting or lagging into obstacles. */
+        int maxStep = (target == CAR_ESC_NEUTRAL_PWM) ? (cfg_slewMaxUs * 3) : cfg_slewMaxUs;
+
         int rearDelta = target - rearCur;
-        if (rearDelta >  cfg_slewMaxUs) rearDelta =  cfg_slewMaxUs;
-        if (rearDelta < -cfg_slewMaxUs) rearDelta = -cfg_slewMaxUs;
+        if (rearDelta >  maxStep) rearDelta =  maxStep;
+        if (rearDelta < -maxStep) rearDelta = -maxStep;
         rearCur += rearDelta;
 
-        int frontTarget = lagBufPush(rearCur);
+        int frontTarget = (target == CAR_ESC_NEUTRAL_PWM) ? target : lagBufPush(rearCur);
         int frontDelta  = frontTarget - frontCur;
-        if (frontDelta >  cfg_slewMaxUs) frontDelta =  cfg_slewMaxUs;
-        if (frontDelta < -cfg_slewMaxUs) frontDelta = -cfg_slewMaxUs;
+        if (frontDelta >  maxStep) frontDelta =  maxStep;
+        if (frontDelta < -maxStep) frontDelta = -maxStep;
         frontCur += frontDelta;
 
         applyEscPulses(rearCur, frontCur);
