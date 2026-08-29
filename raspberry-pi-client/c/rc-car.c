@@ -188,10 +188,11 @@ static void *motorThread(void *arg) {
    Waits for MAVLink HEARTBEAT every 100 ms from the client.
    If no heartbeat arrives for WATCHDOG_TIMEOUT_MS → emergency stop (once).
    Resets automatically when heartbeat is restored.                          */
-#define WATCHDOG_TIMEOUT_MS 500
+#define WATCHDOG_TIMEOUT_MS 1500
 
 static volatile time_t  lastHbSec     = 0;
 static volatile long    lastHbNsec    = 0;
+static volatile bool    watchdogArmed = false;  /* false until first packet from controller arrives */
 static volatile bool    watchdogFired = false;  /* true after emergency stop */
 static pthread_t        watchdogThreadHandle;
 static pthread_mutex_t  watchdogMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -202,24 +203,31 @@ static void touchWatchdog() {
     pthread_mutex_lock(&watchdogMutex);
     lastHbSec  = ts.tv_sec;
     lastHbNsec = ts.tv_nsec;
-    if (watchdogFired) {
+    if (!watchdogArmed) {
+        watchdogArmed = true;
+        printf("[Watchdog] Controller connected — failsafe armed (timeout=%d ms)\n", WATCHDOG_TIMEOUT_MS);
+    } else if (watchdogFired) {
         watchdogFired = false;
-        printf("[Watchdog] signal restored — car ready\n");
+        printf("[Watchdog] Signal restored — car ready\n");
     }
     pthread_mutex_unlock(&watchdogMutex);
 }
 
 static void *watchdogThread(void *arg) {
-    printf("[Watchdog] started, failsafe timeout=%d ms\n", WATCHDOG_TIMEOUT_MS);
-    touchWatchdog();  /* seed the timer on startup */
+    printf("[Watchdog] Standby — waiting for initial connection from controller...\n");
 
     while (1) {
         usleep(50000);  /* check every 50 ms */
 
+        pthread_mutex_lock(&watchdogMutex);
+        if (!watchdogArmed) {
+            pthread_mutex_unlock(&watchdogMutex);
+            continue; /* wait for first packet before arming timeout */
+        }
+
         struct timespec now;
         clock_gettime(CLOCK_MONOTONIC, &now);
 
-        pthread_mutex_lock(&watchdogMutex);
         long elapsed_ms = (now.tv_sec  - lastHbSec)  * 1000
                         + (now.tv_nsec - lastHbNsec) / 1000000;
         bool alreadyFired = watchdogFired;
