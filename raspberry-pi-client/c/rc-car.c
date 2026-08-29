@@ -301,6 +301,7 @@ void turnTo(const float degrees) {
         (int)floorf(CAR_TURNS_MIN_PWM +
                     (degrees / 180.0f) * (CAR_TURNS_MAX_PWM - CAR_TURNS_MIN_PWM));
     gpioServo(CAR_TURNS_SERVO_PIN, pulseWidth);
+    printf("[Steering] deg=%.1f pwm=%d us (pin %d)\n", degrees, pulseWidth, CAR_TURNS_SERVO_PIN);
 }
 
 /* Background thread: reads gyro Z and applies a low-pass steering correction
@@ -385,14 +386,10 @@ void setEscToNeutralPosition() {
     printf("[ESC] neutral\n");
 }
 
-/* Toggle ESC enable pin: disable for 5 s then re-enable (used during INIT). */
+/* Toggle ESC enable pin: enable relay immediately. */
 void enableDisableEsc() {
-    gpioWrite(CAR_ESC_ENABLE_PIN, 1);
-    printf("[ESC] disabled\n");
-    sleep(5);
     gpioWrite(CAR_ESC_ENABLE_PIN, 0);
     printf("[ESC] enabled\n");
-    sleep(5);
 }
 
 /* ── Camera ──────────────────────────────────────────────────────────────── */
@@ -564,21 +561,10 @@ void processMavlinkCommands(mavlink_message_t *msg) {
         return;
     }
 
-    /* MAVLink PING (msg_id=4) — echo back to sender to measure latency */
-    if (msg->msgid == MAVLINK_MSG_ID_PING) {
-        mavlink_ping_t ping;
-        mavlink_msg_ping_decode(msg, &ping);
-        mavlink_message_t reply;
-        mavlink_msg_ping_pack(1, 1, &reply, ping.time_usec, ping.seq, msg->sysid, msg->compid);
-        uint8_t buf[MAVLINK_MAX_PACKET_LEN];
-        uint16_t len = mavlink_msg_to_send_buffer(buf, &reply);
-        sendSerialBinary(buf, len);
-        return;
-    }
-
     if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
         mavlink_command_long_t cmd;
         mavlink_msg_command_long_decode(msg, &cmd);
+        printf("[MAVLink] Received command %d (p1=%.1f, p2=%.1f)\n", cmd.command, cmd.param1, cmd.param2);
 
         switch (cmd.command) {
             case MAVLINK_INIT_COMMAND:
@@ -686,11 +672,6 @@ RcCar *newRcCar() {
     /* Start the motor slew-rate thread */
     if (pthread_create(&motorThreadHandle, NULL, motorThread, NULL) != 0) {
         fprintf(stderr, "[Motor] failed to create slew thread\n");
-    }
-
-    /* Start the failsafe watchdog thread */
-    if (pthread_create(&watchdogThreadHandle, NULL, watchdogThread, NULL) != 0) {
-        fprintf(stderr, "[Watchdog] failed to create thread\n");
     }
 
     return rcCar;

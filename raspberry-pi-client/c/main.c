@@ -52,7 +52,7 @@ int main() {
     gpioSetMode(CAR_CAMERA_GIMBAL_PIN3, PI_OUTPUT);
     gpioSetMode(CAR_CAMERA_GIMBAL_PIN4, PI_OUTPUT);
 
-   	gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+   	gpioWrite(CAR_ESC_ENABLE_PIN, 0); // 0 = Active/Enabled
 
     rcCar = newRcCar();
     env_load(".env", false);
