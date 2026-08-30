@@ -1,0 +1,270 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA00000B00000000000000AA /* RCCarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000A00000000000000AA /* RCCarApp.swift */; };
+		AA00000D00000000000000AA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000C00000000000000AA /* ContentView.swift */; };
+		AA00000F00000000000000AA /* WebRTCView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000E00000000000000AA /* WebRTCView.swift */; };
+		AA00001100000000000000AA /* ClientManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00001000000000000000AA /* ClientManager.swift */; };
+		AA00001300000000000000AA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00001200000000000000AA /* SettingsView.swift */; };
+		AA00001500000000000000AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA00001400000000000000AA /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA00000800000000000000AA /* RCCarApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RCCarApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA00000A00000000000000AA /* RCCarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCCarApp.swift; sourceTree = "<group>"; };
+		AA00000C00000000000000AA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AA00000E00000000000000AA /* WebRTCView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCView.swift; sourceTree = "<group>"; };
+		AA00001000000000000000AA /* ClientManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientManager.swift; sourceTree = "<group>"; };
+		AA00001200000000000000AA /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA00001400000000000000AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA00001600000000000000AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA00001700000000000000AA /* RCCarApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RCCarApp.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA00000500000000000000AA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA00000600000000000000AA /* root */ = {
+			isa = PBXGroup;
+			children = (
+				AA00001D00000000000000AA /* RCCarApp */,
+				AA00000700000000000000AA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA00000700000000000000AA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA00000800000000000000AA /* RCCarApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA00001D00000000000000AA /* RCCarApp */ = {
+			isa = PBXGroup;
+			children = (
+				AA00000A00000000000000AA /* RCCarApp.swift */,
+				AA00000C00000000000000AA /* ContentView.swift */,
+				AA00000E00000000000000AA /* WebRTCView.swift */,
+				AA00001000000000000000AA /* ClientManager.swift */,
+				AA00001200000000000000AA /* SettingsView.swift */,
+				AA00001400000000000000AA /* Assets.xcassets */,
+				AA00001600000000000000AA /* Info.plist */,
+				AA00001700000000000000AA /* RCCarApp.entitlements */,
+			);
+			path = RCCarApp;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA00000200000000000000AA /* RCCarApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA00001A00000000000000AA /* Build configuration list for PBXNativeTarget "RCCarApp" */;
+			buildPhases = (
+				AA00000300000000000000AA /* Sources */,
+				AA00000400000000000000AA /* Resources */,
+				AA00000500000000000000AA /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RCCarApp;
+			productName = RCCarApp;
+			productReference = AA00000800000000000000AA /* RCCarApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA00000100000000000000AA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AA00000200000000000000AA = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = AA00001900000000000000AA /* Build configuration list for PBXProject "RCCarApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA00000600000000000000AA;
+			productRefGroup = AA00000700000000000000AA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA00000200000000000000AA /* RCCarApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA00000400000000000000AA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA00001500000000000000AA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA00000300000000000000AA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA00000B00000000000000AA /* RCCarApp.swift in Sources */,
+				AA00000D00000000000000AA /* ContentView.swift in Sources */,
+				AA00000F00000000000000AA /* WebRTCView.swift in Sources */,
+				AA00001100000000000000AA /* ClientManager.swift in Sources */,
+				AA00001300000000000000AA /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA00001B00000000000000AA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RCCarApp/RCCarApp.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RCCarApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rccar.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA00001C00000000000000AA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RCCarApp/RCCarApp.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RCCarApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rccar.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AA00001700000000000000AB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA00001800000000000000AB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA00001900000000000000AA /* Build configuration list for PBXProject "RCCarApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA00001700000000000000AB /* Debug */,
+				AA00001800000000000000AB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA00001A00000000000000AA /* Build configuration list for PBXNativeTarget "RCCarApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA00001B00000000000000AA /* Debug */,
+				AA00001C00000000000000AA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA00000100000000000000AA /* Project object */;
+}

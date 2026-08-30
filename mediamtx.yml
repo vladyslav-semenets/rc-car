@@ -51,34 +51,34 @@ authMethod: internal
 authInternalUsers:
   # Default unprivileged user.
   # Username. 'any' means any user, including anonymous ones.
-- user: any
-  # Password. Not used in case of 'any' user.
-  pass:
-  # IPs or networks allowed to use this user. An empty list means any IP.
-  ips: []
-  # List of permissions.
-  permissions:
-    # Available actions are: publish, read, playback, api, metrics, pprof.
-  - action: publish
-    # Paths can be set to further restrict access to a specific path.
-    # An empty path means any path.
-    # Regular expressions can be used by using a tilde as prefix.
-    path:
-  - action: read
-    path:
-  - action: playback
-    path:
+  - user: any
+    # Password. Not used in case of 'any' user.
+    pass:
+    # IPs or networks allowed to use this user. An empty list means any IP.
+    ips: []
+    # List of permissions.
+    permissions:
+      # Available actions are: publish, read, playback, api, metrics, pprof.
+      - action: publish
+        # Paths can be set to further restrict access to a specific path.
+        # An empty path means any path.
+        # Regular expressions can be used by using a tilde as prefix.
+        path:
+      - action: read
+        path:
+      - action: playback
+        path:
 
-  # Default administrator.
-  # This allows to use API, metrics and PPROF without authentication,
-  # if the IP is localhost.
-- user: any
-  pass:
-  ips: ['127.0.0.1', '::1']
-  permissions:
-  - action: api
-  - action: metrics
-  - action: pprof
+    # Default administrator.
+    # This allows to use API, metrics and PPROF without authentication,
+    # if the IP is localhost.
+  - user: any
+    pass:
+    ips: ['127.0.0.1', '::1']
+    permissions:
+      - action: api
+      - action: metrics
+      - action: pprof
 
 # HTTP-based authentication.
 # URL called to perform authentication. Every time a user wants
@@ -100,9 +100,9 @@ authHTTPAddress:
 # Actions to exclude from HTTP-based authentication.
 # Format is the same as the one of user permissions.
 authHTTPExclude:
-- action: api
-- action: metrics
-- action: pprof
+  - action: api
+  - action: metrics
+  - action: pprof
 
 # JWT-based authentication.
 # Users have to login through an external identity server and obtain a JWT.
@@ -225,7 +225,7 @@ rtsp: yes
 # UDP-multicast allows to save bandwidth when clients are all in the same LAN.
 # TCP is the most versatile, and does support encryption.
 # The handshake is always performed with TCP.
-protocols: [udp, multicast, tcp]
+protocols: [tcp]
 # Encrypt handshakes and TCP streams with TLS (RTSPS).
 # Available values are "no", "strict", "optional".
 encryption: "no"
@@ -258,7 +258,7 @@ rtspAuthMethods: [basic]
 # Global settings -> RTMP server
 
 # Enable publishing and reading streams with the RTMP protocol.
-rtmp: yes
+rtmp: no
 # Address of the RTMP listener. This is needed only when encryption is "no" or "optional".
 rtmpAddress: :1935
 # Encrypt connections with TLS (RTMPS).
@@ -278,7 +278,7 @@ rtmpServerCert: server.crt
 # Global settings -> HLS server
 
 # Enable reading streams with the HLS protocol.
-hls: yes
+hls: no
 # Address of the HLS listener.
 hlsAddress: :8887
 # Enable TLS/HTTPS on the HLS server.
@@ -365,17 +365,16 @@ webrtcLocalUDPAddress: :8189
 webrtcLocalTCPAddress: ''
 # WebRTC clients need to know the IP of the server.
 # Gather IPs from interfaces and send them to clients.
-webrtcIPsFromInterfaces: yes
+webrtcIPsFromInterfaces: no
 # List of interfaces whose IPs will be sent to clients.
 # An empty value means to use all available interfaces.
 webrtcIPsFromInterfacesList: []
 # List of additional hosts or IPs to send to clients.
-webrtcAdditionalHosts: [18.175.57.17, 172.31.2.5, d3ce-80-238-115-13.ngrok-free.app]
+webrtcAdditionalHosts: [100.108.40.34]
 # ICE servers. Needed only when local listeners can't be reached by clients.
 # STUN servers allows to obtain and share the public IP of the server.
 # TURN/TURNS servers forces all traffic through them.
-webrtcICEServers2:
-  - url: stun:stun.l.google.com:19302
+webrtcICEServers2: []
   # if user is "AUTH_SECRET", then authentication is secret based.
   # the secret must be inserted into the password field.
   # username: ''
@@ -386,7 +385,7 @@ webrtcICEServers2:
 # Global settings -> SRT server
 
 # Enable publishing and reading streams with the SRT protocol.
-srt: yes
+srt: no
 # Address of the SRT listener.
 srtAddress: :8890
 
@@ -683,13 +682,10 @@ pathDefaults:
 # for example "~^(test1|test2)$" will match both "test1" and "test2",
 # for example "~^prefix" will match all paths that start with "prefix".
 paths:
-  # example:
-  # my_camera:
-  #   source: rtsp://my_camera
-  cam1:
-    runOnInit: bash -c 'ffmpeg -f v4l2 -framerate 30 -video_size 1280x720 -input_format mjpeg -i /dev/video0 -vf format=yuv420p -c:v h264_v4l2m2m -b:v 1500k -preset ultrafast -tune zerolatency -g 15 -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH'
+  front:
+    runOnInit: bash -c 'ffmpeg -f v4l2 -framerate 25 -video_size 1024x576 -i /dev/video0 -c:v libx264 -preset superfast -tune zerolatency -x264-params nal-hrd=cbr:force-cfr=1:rc-lookahead=0:sync-lookahead=0 -b:v 3000k -maxrate 3500k -bufsize 3000k -g 25 -pix_fmt yuv420p -fflags nobuffer -flags low_delay -f rtsp rtsp://localhost:8554/front'
     runOnInitRestart: yes
+
   # Settings under path "all_others" are applied to all paths that
   # do not match another entry.
   all_others:
-

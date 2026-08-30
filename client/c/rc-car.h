@@ -1,7 +1,7 @@
 #ifndef RC_CAR_H
 #define RC_CAR_H
 #include <SDL2/SDL.h>
-#include <libwebsockets.h>
+#include "udp.h"
 
 #define JOYSTICK_DEADZONE 3000
 #define JOYSTICK_MAX_AXIS_VALUE 32768
@@ -13,7 +13,20 @@
 #define SIXTH_TRANSMISSION_SPEED 6
 #define SEVENTH_TRANSMISSION_SPEED 7
 #define EIGHTH_TRANSMISSION_SPEED 8
-
+#define MAVLINK_INIT_COMMAND                            1
+#define MAVLINK_CHANGE_DEGREE_OF_TURNS_COMMAND          2
+#define MAVLINK_RESET_TURNS_COMMAND                     3
+#define MAVLINK_TURN_TO_COMMAND                         4
+#define MAVLINK_FORWARD_COMMAND                         5
+#define MAVLINK_BACKWARD_COMMAND                        6
+#define MAVLINK_SET_ESC_TO_NEUTRAL_POSITION_COMMAND     7
+#define MAVLINK_START_CAMERA_COMMAND                    8
+#define MAVLINK_STOP_CAMERA_COMMAND                     9
+#define MAVLINK_CAMERA_GIMBAL_TURN_TO_COMMAND           10
+#define MAVLINK_CAMERA_GIMBAL_SET_PITCH_ANGLE_COMMAND   11
+#define MAVLINK_RESET_CAMERA_GIMBAL_COMMAND             12
+#define MAVLINK_STEERING_CALIBRATION_ON_COMMAND         13
+#define MAVLINK_STEERING_CALIBRATION_OFF_COMMAND        14
 
 struct CommonActionPayload {
     char *to;
@@ -65,7 +78,7 @@ typedef struct RcCar {
     void (*resetTurns)(struct RcCar *self);
     void (*processJoystickEvents)(struct RcCar *self, SDL_Event *e);
     void (*setControllerInstance)(SDL_GameController *controllerInstance);
-    void (*setWebSocketInstance)(struct lws *webSocketInstance);
+    void (*setUdpConnection)(UDPConnection *udpConnection);
     void (*onCloseJoystick)();
 } RcCar;
 RcCar *newRcCar();

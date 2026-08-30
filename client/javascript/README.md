@@ -1,27 +1,66 @@
-# RcCar
+# Hybrid Web & Mobile Client (Angular + Capacitor)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.4.
+A cross-platform web and mobile ground control interface built with **Angular 19** and **Capacitor 6**. It allows vehicle control and live FPV video monitoring from any modern desktop browser, tablet, or Android device.
 
-## Development server
+---
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+## 1. Features
 
-## Code scaffolding
+* **Angular 19 Standalone Architecture**: High-performance UI with Angular Material components.
+* **HTML5 Gamepad API Support**: Integrates `gamecontroller.js` for browser-based gamepad reading (DualShock 4, Xbox controllers).
+* **Real-Time WebSocket Link**: Bidirectional communication with the car's WebSocket server over port `8585`.
+* **Integrated WebRTC Video**: Direct low-latency FPV video rendering from MediaMTX.
+* **Capacitor 6 Android Support**: Native Android wrapper allowing the Angular application to be installed and run as an Android APK.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+---
 
-## Build
+## 2. Directory Structure
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```
+client/javascript/
+├── src/
+│   ├── app/
+│   │   ├── app.component.ts   # Main controller view & gamepad listeners
+│   │   ├── app.service.ts     # WebSocket connection & MediaMTX endpoint provider
+│   │   ├── app.routes.ts      # Angular routing configuration
+│   │   └── app.config.ts      # Application providers
+│   ├── assets/                # Controller UI layouts and scripts
+│   └── main.ts                # Application bootstrap
+├── android/                   # Capacitor Android wrapper project
+├── angular.json               # Angular workspace configuration
+├── capacitor.config.ts        # Capacitor mobile configuration
+└── package.json               # Dependencies and build scripts
+```
 
-## Running unit tests
+---
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## 3. Getting Started
 
-## Running end-to-end tests
+### 3.1. Prerequisites
+* Node.js 18+ or 20+
+* Yarn or npm
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+### 3.2. Configuration
+Copy `.env.example` to `.env.local` and set your Raspberry Pi's IP address:
+```bash
+cp .env.example .env.local
+```
+Inside `.env.local`:
+```env
+NG_APP_RASPBERRY_PI_IP="192.168.1.100"
+```
 
-## Further help
+### 3.3. Run in Web Browser
+```bash
+yarn install
+yarn start
+```
+Open `http://localhost:4200` in your browser.
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+### 3.4. Build for Android (Capacitor)
+```bash
+yarn build
+npx cap sync android
+npx cap open android
+```
+This opens the project in Android Studio for native APK compilation and device deployment.

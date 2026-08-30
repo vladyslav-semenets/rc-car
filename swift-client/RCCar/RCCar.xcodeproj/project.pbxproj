@@ -1,0 +1,253 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BB00000B000000000000000BB /* RCCarApp.swift in Sources */      = {isa = PBXBuildFile; fileRef = BB00000A000000000000000BB; };
+		BB00000D000000000000000BB /* ContentView.swift in Sources */   = {isa = PBXBuildFile; fileRef = BB00000C000000000000000BB; };
+		BB00000F000000000000000BB /* WebRTCView.swift in Sources */    = {isa = PBXBuildFile; fileRef = BB00000E000000000000000BB; };
+		BB000011000000000000000BB /* MAVLink.swift in Sources */       = {isa = PBXBuildFile; fileRef = BB000010000000000000000BB; };
+		BB000013000000000000000BB /* UDPManager.swift in Sources */    = {isa = PBXBuildFile; fileRef = BB000012000000000000000BB; };
+		BB000015000000000000000BB /* JoystickManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000014000000000000000BB; };
+		BB000017000000000000000BB /* CarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000016000000000000000BB; };
+		BB000019000000000000000BB /* SettingsView.swift in Sources */  = {isa = PBXBuildFile; fileRef = BB000018000000000000000BB; };
+		BB00001B000000000000000BB /* Assets.xcassets in Resources */   = {isa = PBXBuildFile; fileRef = BB00001A000000000000000BB; };
+		BB00002A000000000000000BB /* SSHManager.swift in Sources */    = {isa = PBXBuildFile; fileRef = BB00002B000000000000000BB; };
+		BB00002C000000000000000BB /* PingMonitor.swift in Sources */   = {isa = PBXBuildFile; fileRef = BB00002D000000000000000BB; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		BB000008000000000000000BB /* RCCar.app */            = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RCCar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB00000A000000000000000BB /* RCCarApp.swift */       = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RCCarApp.swift; sourceTree = "<group>"; };
+		BB00000C000000000000000BB /* ContentView.swift */    = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		BB00000E000000000000000BB /* WebRTCView.swift */     = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCView.swift; sourceTree = "<group>"; };
+		BB000010000000000000000BB /* MAVLink.swift */        = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MAVLink.swift; sourceTree = "<group>"; };
+		BB000012000000000000000BB /* UDPManager.swift */     = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UDPManager.swift; sourceTree = "<group>"; };
+		BB000014000000000000000BB /* JoystickManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickManager.swift; sourceTree = "<group>"; };
+		BB000016000000000000000BB /* CarController.swift */  = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarController.swift; sourceTree = "<group>"; };
+		BB000018000000000000000BB /* SettingsView.swift */   = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		BB00001A000000000000000BB /* Assets.xcassets */      = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB00001C000000000000000BB /* Info.plist */           = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BB00001D000000000000000BB /* RCCar.entitlements */   = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RCCar.entitlements; sourceTree = "<group>"; };
+		BB00002B000000000000000BB /* SSHManager.swift */     = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHManager.swift; sourceTree = "<group>"; };
+		BB00002D000000000000000BB /* PingMonitor.swift */    = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PingMonitor.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BB000005000000000000000BB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BB000006000000000000000BB = {
+			isa = PBXGroup;
+			children = (
+				BB00001E000000000000000BB /* RCCar */,
+				BB000007000000000000000BB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BB000007000000000000000BB /* Products */ = {
+			isa = PBXGroup;
+			children = (BB000008000000000000000BB);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BB00001E000000000000000BB /* RCCar */ = {
+			isa = PBXGroup;
+			children = (
+				BB00000A000000000000000BB /* RCCarApp.swift */,
+				BB00000C000000000000000BB /* ContentView.swift */,
+				BB00000E000000000000000BB /* WebRTCView.swift */,
+				BB000010000000000000000BB /* MAVLink.swift */,
+				BB000012000000000000000BB /* UDPManager.swift */,
+				BB000014000000000000000BB /* JoystickManager.swift */,
+				BB000016000000000000000BB /* CarController.swift */,
+				BB000018000000000000000BB /* SettingsView.swift */,
+				BB00002B000000000000000BB /* SSHManager.swift */,
+				BB00002D000000000000000BB /* PingMonitor.swift */,
+				BB00001A000000000000000BB /* Assets.xcassets */,
+				BB00001C000000000000000BB /* Info.plist */,
+				BB00001D000000000000000BB /* RCCar.entitlements */,
+			);
+			path = RCCar;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BB000002000000000000000BB /* RCCar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB00001A000000000000000BC;
+			buildPhases = (
+				BB000003000000000000000BB /* Sources */,
+				BB000004000000000000000BB /* Resources */,
+				BB000005000000000000000BB /* Frameworks */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = RCCar;
+			productName = RCCar;
+			productReference = BB000008000000000000000BB;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BB000001000000000000000BB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					BB000002000000000000000BB = { CreatedOnToolsVersion = 15.0; };
+				};
+			};
+			buildConfigurationList = BB000019000000000000000BC;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = BB000006000000000000000BB;
+			productRefGroup = BB000007000000000000000BB;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (BB000002000000000000000BB);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB000004000000000000000BB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (BB00001B000000000000000BB);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BB000003000000000000000BB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BB00000B000000000000000BB,
+				BB00000D000000000000000BB,
+				BB00000F000000000000000BB,
+				BB000011000000000000000BB,
+				BB000013000000000000000BB,
+				BB000015000000000000000BB,
+				BB000017000000000000000BB,
+				BB000019000000000000000BB,
+				BB00002A000000000000000BB,
+				BB00002C000000000000000BB,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		BB00001B000000000000000BC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)");
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BB00001C000000000000000BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		BB00001D000000000000000BC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RCCar/RCCar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RCCar/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rccar.swift;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BB00001E000000000000000BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RCCar/RCCar.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RCCar/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rccar.swift;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BB000019000000000000000BC = {
+			isa = XCConfigurationList;
+			buildConfigurations = (BB00001B000000000000000BC, BB00001C000000000000000BC);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB00001A000000000000000BC = {
+			isa = XCConfigurationList;
+			buildConfigurations = (BB00001D000000000000000BC, BB00001E000000000000000BC);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BB000001000000000000000BB;
+}

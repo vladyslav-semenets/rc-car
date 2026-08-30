@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">rc-car</string>
+    <string name="title_activity_main">rc-car</string>
+    <string name="package_name">com.rccar.app</string>
+    <string name="custom_url_scheme">com.rccar.app</string>
+</resources>

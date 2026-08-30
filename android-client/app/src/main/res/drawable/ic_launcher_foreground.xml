@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Gamepad body -->
+    <path
+        android:fillColor="#4FC3F7"
+        android:pathData="M22,54 C22,38 34,28 54,28 C74,28 86,38 86,54 C86,68 76,76 66,76 L42,76 C32,76 22,68 22,54 Z" />
+
+    <!-- Left stick circle -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M38,58 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+
+    <!-- Right stick circle -->
+    <path
+        android:fillColor="#1A1A2E"
+        android:pathData="M70,58 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+
+    <!-- D-pad cross -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M34,48 L42,48 L42,44 L46,44 L46,48 L54,48 L54,52 L46,52 L46,56 L42,56 L42,52 L34,52 Z"
+        android:translateX="-12"
+        android:translateY="0"/>
+
+    <!-- Buttons (A, B, X, Y) -->
+    <path android:fillColor="#4CAF50" android:pathData="M75,52 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" /> <!-- A green -->
+    <path android:fillColor="#F44336" android:pathData="M83,44 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" /> <!-- B red -->
+    <path android:fillColor="#2196F3" android:pathData="M67,44 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" /> <!-- X blue -->
+    <path android:fillColor="#FF9800" android:pathData="M75,36 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" /> <!-- Y orange -->
+
+    <!-- L1/R1 bumpers -->
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M24,42 Q30,36 40,36 L40,42 Q32,42 28,44 Z" />
+    <path
+        android:fillColor="#0D47A1"
+        android:pathData="M84,42 Q78,36 68,36 L68,42 Q76,42 80,44 Z" />
+</vector>
