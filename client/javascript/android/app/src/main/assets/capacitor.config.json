@@ -1,0 +1,9 @@
+{
+	"appId": "com.rccar.app",
+	"appName": "rc-car",
+	"webDir": "dist/rc-car/browser",
+	"server": {
+		"androidScheme": "http",
+		"cleartext": true
+	}
+}
