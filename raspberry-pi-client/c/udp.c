@@ -1,9 +1,11 @@
+#include <arpa/inet.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <arpa/inet.h>
+#include <string.h>
 #include <sys/socket.h>
-#include <errno.h>
+#include <unistd.h>
+
 #include "udp.h"
 
 static int sockfd = -1;
@@ -33,7 +35,7 @@ int createUdpServer(int port, MavlinkMessageHandler onMessage) {
         return -1;
     }
 
-    struct timeval timeout = {1, 0}; // 1 second timeout
+    struct timeval timeout = {1, 0}; // 1 second read timeout
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
         perror("[UDP] setsockopt failed");
         close(sockfd);
@@ -42,7 +44,6 @@ int createUdpServer(int port, MavlinkMessageHandler onMessage) {
     }
 
     printf("[UDP] Listening for MAVLink packets on port %d\n", port);
-
     isUdpRunning = 1;
 
     mavlink_message_t msg;
@@ -53,10 +54,8 @@ int createUdpServer(int port, MavlinkMessageHandler onMessage) {
                             (struct sockaddr *)&sender_addr, &sender_len);
         if (recv_len < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // Timeout, just continue listening
                 continue;
             } else if (errno == EINTR) {
-                // Interrupted by signal, break loop cleanly
                 printf("[UDP] recvfrom interrupted by signal\n");
                 break;
             } else {
@@ -67,7 +66,7 @@ int createUdpServer(int port, MavlinkMessageHandler onMessage) {
 
         for (ssize_t i = 0; i < recv_len; i++) {
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
-                if (onMessage) {
+                if (onMessage != NULL) {
                     onMessage(&msg);
                 }
             }

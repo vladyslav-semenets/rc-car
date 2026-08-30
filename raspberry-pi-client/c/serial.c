@@ -1,11 +1,12 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <termios.h>
-#include <pthread.h>
+#include <unistd.h>
+
 #include "serial.h"
 
 static int serialFd = -1;
@@ -20,7 +21,7 @@ uint8_t computeCrc8(const uint8_t *data, size_t len) {
     for (size_t i = 0; i < len; i++) {
         crc ^= data[i];
         for (int j = 0; j < 8; j++) {
-            if (crc & 0x80) {
+            if ((crc & 0x80) != 0) {
                 crc = (crc << 1) ^ 0x07;
             } else {
                 crc <<= 1;
@@ -32,19 +33,28 @@ uint8_t computeCrc8(const uint8_t *data, size_t len) {
 
 static speed_t getSpeed(int baud) {
     switch (baud) {
-        case 9600:   return B9600;
-        case 19200:  return B19200;
-        case 38400:  return B38400;
-        case 57600:  return B57600;
-        case 115200: return B115200;
-        case 230400: return B230400;
+        case 9600:
+            return B9600;
+        case 19200:
+            return B19200;
+        case 38400:
+            return B38400;
+        case 57600:
+            return B57600;
+        case 115200:
+            return B115200;
+        case 230400:
+            return B230400;
 #ifdef B460800
-        case 460800: return B460800;
+        case 460800:
+            return B460800;
 #endif
 #ifdef B921600
-        case 921600: return B921600;
+        case 921600:
+            return B921600;
 #endif
-        default:     return B115200;
+        default:
+            return B115200;
     }
 }
 
@@ -60,38 +70,37 @@ static int configurePort(int fd, int baud) {
     cfsetispeed(&tty, speed);
 
     // 8N1 (8 data bits, no parity, 1 stop bit)
-    tty.c_cflag &= ~PARENB;        // Clear parity bit
-    tty.c_cflag &= ~CSTOPB;        // 1 stop bit
+    tty.c_cflag &= ~PARENB;
+    tty.c_cflag &= ~CSTOPB;
     tty.c_cflag &= ~CSIZE;
-    tty.c_cflag |= CS8;            // 8 bits per byte
-    tty.c_cflag &= ~CRTSCTS;       // Disable RTS/CTS hardware flow control
-    tty.c_cflag |= CREAD | CLOCAL; // Turn on READ & ignore ctrl lines (CLOCAL)
+    tty.c_cflag |= CS8;
+    tty.c_cflag &= ~CRTSCTS;
+    tty.c_cflag |= CREAD | CLOCAL;
 
-    // Raw input
+    // Raw input mode
     tty.c_lflag &= ~ICANON;
-    tty.c_lflag &= ~ECHO;          // Disable echo
-    tty.c_lflag &= ~ECHOE;         // Disable erasure
-    tty.c_lflag &= ~ECHONL;        // Disable new-line echo
-    tty.c_lflag &= ~ISIG;          // Disable interpretation of INTR, QUIT and SUSP
+    tty.c_lflag &= ~ECHO;
+    tty.c_lflag &= ~ECHOE;
+    tty.c_lflag &= ~ECHONL;
+    tty.c_lflag &= ~ISIG;
 
-    // Disable software flow control & special byte handling
+    // Disable software flow control
     tty.c_iflag &= ~(IXON | IXOFF | IXANY);
     tty.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL);
 
-    // Raw output
-    tty.c_oflag &= ~OPOST;         // Prevent special interpretation of output bytes
-    tty.c_oflag &= ~ONLCR;         // Prevent conversion of newline to CR/LF
+    // Raw output mode
+    tty.c_oflag &= ~OPOST;
+    tty.c_oflag &= ~ONLCR;
 
-    // Blocking read with 50ms timeout
-    tty.c_cc[VTIME] = 1;           // Wait for up to 100ms
-    tty.c_cc[VMIN]  = 0;           // Return as soon as any data is received
+    // Non-blocking read with 100ms timeout
+    tty.c_cc[VTIME] = 1;
+    tty.c_cc[VMIN]  = 0;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
         perror("[Serial] tcsetattr error");
         return -1;
     }
 
-    // Flush any pending bytes
     tcflush(fd, TCIOFLUSH);
     return 0;
 }
@@ -119,7 +128,7 @@ static void *serialReaderThread(void *arg) {
             for (ssize_t i = 0; i < bytesRead; i++) {
                 uint8_t byte = buffer[i];
 
-                // ── 1. Compact 8-byte RC Packet Parser (0xAA) ────────────────
+                // 1. Compact 8-byte RC Packet Parser (0xAA)
                 if (rcIndex == 0) {
                     if (byte == RC_COMPACT_SYNC) {
                         rcBuffer[rcIndex++] = byte;
@@ -127,21 +136,19 @@ static void *serialReaderThread(void *arg) {
                 } else {
                     rcBuffer[rcIndex++] = byte;
                     if (rcIndex == RC_COMPACT_LEN) {
-                        // Check CRC-8
                         if (computeCrc8(rcBuffer, RC_COMPACT_LEN - 1) == rcBuffer[RC_COMPACT_LEN - 1]) {
                             if (compactCallback != NULL) {
                                 compactCallback((const CompactRcPacket *)rcBuffer);
                             }
                             rcIndex = 0;
-                            continue; // Successfully handled as Compact RC packet
+                            continue;
                         } else {
-                            // CRC mismatch — reset and fall back to MAVLink
                             rcIndex = 0;
                         }
                     }
                 }
 
-                // ── 2. Fallback MAVLink v1/v2 Parser ─────────────────────────
+                // 2. Fallback MAVLink v1/v2 Parser
                 if (mavlink_parse_char(MAVLINK_COMM_0, byte, &msg, &status)) {
                     if (msgCallback != NULL) {
                         msgCallback(&msg);

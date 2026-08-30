@@ -1,22 +1,35 @@
-# compiled output
+# Compiled output & build directories
 /dist
+**/dist/
+**/build/
+**/cmake-build-debug/
+**/.externalNativeBuild/
+**/.pio/
 socket-server/javascript/node_modules
 client/javascript/node_modules
 client/javascript/.angular
-client/javascript/.env.local
 map/.angular
-map/.env.local
 map/node_modules
 raspberry-pi-client/javascript/node_modules
-client/c/.idea
-client/c/cmake-build-debug
-client/c/build
-websocket-server/c/.idea
-websocket-server/c/cmake-build-debug
-websocket-server/c/build
-raspberry-pi-client/c/.idea
-raspberry-pi-client/c/cmake-build-debug
-raspberry-pi-client/c/build
+
+# Android
+**/.gradle/
+**/local.properties
+**/captures/
+**/.cxx/
+**/android-client/app/build/
+
+# Apple / Xcode
+**/*.xcuserstate
+**/xcuserdata/
+**/*.xcscmblueprint
+DerivedData/
+
+# Environment Variables & Secrets
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
 
 # Logs
 logs
@@ -29,6 +42,9 @@ lerna-debug.log*
 
 # OS
 .DS_Store
+**/.DS_Store
+Thumbs.db
+**/Thumbs.db
 
 # Tests
 /coverage
@@ -36,6 +52,7 @@ lerna-debug.log*
 
 # IDEs and editors
 /.idea
+**/.idea/
 .project
 .classpath
 .c9/
@@ -52,6 +69,4 @@ lerna-debug.log*
 
 # Misc
 docker/data/*
-
-# Misc
-.env
+test.md
