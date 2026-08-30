@@ -2,6 +2,10 @@
 
 This document specifies the electronic pinouts, power wiring, sensor orientation, and RF transceiver configurations for the Long-Range RC Car System.
 
+<p align="center">
+  <img src="images/car_3.jpg" alt="Chassis Internal Electronics & Wiring Layout" width="80%" />
+</p>
+
 ---
 
 ## 1. Raspberry Pi 4 Model B GPIO Pinout

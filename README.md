@@ -10,6 +10,22 @@ An advanced, long-range **FPV (First Person View) Remote-Controlled Vehicle Syst
 
 ---
 
+## Vehicle Showcase
+
+<p align="center">
+  <img src="docs/images/car_1.jpg" alt="RC Car Overview" width="85%" />
+</p>
+
+<p align="center">
+  <img src="docs/images/car_2.jpg" alt="Front FPV Gimbal Dome & LED Headlamp" width="48%" />
+  <img src="docs/images/car_3.jpg" alt="Internal Electronics & Raspberry Pi 4 Architecture" width="48%" />
+</p>
+
+* **Exterior**: Custom olive-green aerodynamic 3D-printed armored chassis with 6-wheel multi-terrain drivetrain, front high-lumen LED headlamp, and protective clear acrylic dome housing the CaddxFPV GM3 2-axis camera gimbal.
+* **Interior**: Raspberry Pi 4 compute module with active cooling fan, dual Hobbywing QuicRun ESCs, MPU-6050 6-DOF IMU, power relay failsafe, and high-capacity battery packs.
+
+---
+
 ## Key Features
 
 * **Ultra-Low Latency LoRa 868 MHz Link (~23–28 ms total latency)**:
