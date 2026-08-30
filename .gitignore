@@ -19,6 +19,13 @@ raspberry-pi-client/javascript/node_modules
 **/.cxx/
 **/android-client/app/build/
 
+# Capacitor / Cordova generated assets
+**/app/src/main/assets/public/
+**/app/src/main/assets/capacitor.config.json
+**/app/src/main/assets/capacitor.plugins.json
+**/capacitor-cordova-android-plugins/
+**/app/src/main/res/xml/config.xml
+
 # Apple / Xcode
 **/*.xcuserstate
 **/xcuserdata/
