@@ -65,6 +65,8 @@
 #define MAVLINK_STEERING_CALIBRATION_OFF_COMMAND        14
 #define MAVLINK_SET_MOTOR_CONFIG_COMMAND                15
 #define MAVLINK_UNSTUCK_COMMAND                         16
+#define MAVLINK_REBOOT_PI_COMMAND                       17
+#define MAVLINK_SHUTDOWN_PI_COMMAND                     18
 
 /* ── MPU6050 gyroscope constants ───────────────────────────────────────────── */
 #define MPU6050_ADDRESS      0x68   /* I2C address                          */

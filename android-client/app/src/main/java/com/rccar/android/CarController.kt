@@ -188,6 +188,8 @@ class CarController(
 
     fun startCamera()          { send(8) }
     fun stopCamera()           { send(9) }
+    fun rebootPi()             { send(17) }
+    fun shutdownPi()           { send(18) }
 
     fun resetGimbal() {
         currentGimbalYaw.floatValue = 0f

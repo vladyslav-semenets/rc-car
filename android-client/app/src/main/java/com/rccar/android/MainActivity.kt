@@ -301,6 +301,27 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
                 ControlButton("Init car (↑)") { car.initCar() }
                 ControlButton("ESC Neutral (B)") { car.neutral() }
                 ControlButton("🔄 Unstuck") { car.unstuck() }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                ) {
+                    Button(
+                        onClick = { car.rebootPi() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFC62828)),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(2.dp)
+                    ) {
+                        Text("Reboot", fontSize = 10.sp, color = Color.White)
+                    }
+                    Button(
+                        onClick = { car.shutdownPi() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF880E4F)),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(2.dp)
+                    ) {
+                        Text("Shutdown", fontSize = 10.sp, color = Color.White)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

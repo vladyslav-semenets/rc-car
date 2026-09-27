@@ -633,6 +633,20 @@ void processMavlinkCommands(mavlink_message_t *msg) {
                 cameraGimbalSetYaw(0.0f);
                 break;
 
+            case MAVLINK_REBOOT_PI_COMMAND:
+                printf("[System] Reboot command received. Rebooting Raspberry Pi...\n");
+                setEscToNeutralPosition();
+                gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+                system("sync; sudo reboot now &");
+                break;
+
+            case MAVLINK_SHUTDOWN_PI_COMMAND:
+                printf("[System] Shutdown command received. Shutting down Raspberry Pi...\n");
+                setEscToNeutralPosition();
+                gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+                system("sync; sudo shutdown -h now &");
+                break;
+
             default:
                 break;
         }

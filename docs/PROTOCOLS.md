@@ -86,6 +86,8 @@ All MAVLink communications use `MAVLINK_MSG_ID_COMMAND_LONG` (Message ID 76).
 | **14** | `MAVLINK_STEERING_CALIBRATION_OFF` | — | Disables gyro thread and closes I2C handle |
 | **15** | `MAVLINK_SET_MOTOR_CONFIG` | `p1=frontTrim`, `p2=rearTrim`, `p3=slewMax`, `p4=dirHold`, `p5=frontLag`, `p6=brakeMs`, `p7=neutralMs` | Configures powertrain slew, trim, and braking dynamics |
 | **16** | `MAVLINK_UNSTUCK` | `param1=centerAngle` | Triggers 3-cycle automated rocking self-recovery |
+| **17** | `MAVLINK_REBOOT_PI` | — | Safely cuts ESC relay and executes `sudo reboot now` |
+| **18** | `MAVLINK_SHUTDOWN_PI` | — | Safely cuts ESC relay and executes `sudo shutdown -h now` |
 
 ---
 
