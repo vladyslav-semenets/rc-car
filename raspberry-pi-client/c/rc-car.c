@@ -695,6 +695,11 @@ RcCar *newRcCar(void) {
     rcCar->processMavlinkCommands = processMavlinkCommands;
     rcCar->processCompactRcPacket = processCompactRcPacket;
 
+    turnTo(currentSteeringCenter);
+    initCameraGimbal();
+    cameraGimbalSetYaw(0.0f);
+    cameraGimbalSetPitch(0.0f);
+
     if (pthread_create(&motorThreadHandle, NULL, motorThread, NULL) != 0) {
         fprintf(stderr, "[Motor] failed to create slew thread\n");
     }

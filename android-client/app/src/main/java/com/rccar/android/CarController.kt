@@ -112,6 +112,13 @@ class CarController(
 
     fun initCar() {
         currentSteeringAngle.floatValue = degreeOfTurns.floatValue
+        currentGimbalYaw.floatValue = 0f
+        pitchAngle.intValue = 0
+        currentThrottlePercent = 0
+        currentDriveAction = DriveAction.STOPPED
+        if (ble.connectionState.value == BleManager.State.CONNECTED) {
+            sendCompactPacket()
+        }
         send(1, p1 = 50f, p2 = degreeOfTurns.floatValue)
     }
 
