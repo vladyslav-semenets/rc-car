@@ -333,9 +333,31 @@ void setEscToNeutralPosition(void) {
     printf("[ESC] neutral\n");
 }
 
+static void *escPowerCycleThread(void *arg) {
+    (void)arg;
+    printf("[ESC] Power-cycling ESC relay (turning OFF)...\n");
+    gpioWrite(CAR_ESC_ENABLE_PIN, 1); // Relay OFF (cut ESC power)
+    usleep(400000);                   // 400 ms capacitor discharge
+    gpioWrite(CAR_ESC_ENABLE_PIN, 0); // Relay ON (restore ESC power)
+    printf("[ESC] Relay ON: ESCs powered up and armed (beep)!\n");
+    return NULL;
+}
+
+void triggerEscPowerCycle(void) {
+    setEscToNeutralPosition();
+    pthread_t th;
+    if (pthread_create(&th, NULL, escPowerCycleThread, NULL) == 0) {
+        pthread_detach(th);
+    } else {
+        // Fallback synchronous if thread creation fails
+        gpioWrite(CAR_ESC_ENABLE_PIN, 1);
+        usleep(400000);
+        gpioWrite(CAR_ESC_ENABLE_PIN, 0);
+    }
+}
+
 void enableDisableEsc(void) {
-    gpioWrite(CAR_ESC_ENABLE_PIN, 0);
-    printf("[ESC] enabled\n");
+    triggerEscPowerCycle();
 }
 
 /* ── Camera ──────────────────────────────────────────────────────────────── */
@@ -513,9 +535,10 @@ void processMavlinkCommands(mavlink_message_t *msg) {
             case MAVLINK_INIT_COMMAND:
                 currentSteeringCenter = cmd.param2;
                 turnTo(cmd.param2);
-                enableDisableEsc();
-                setEscToNeutralPosition();
                 initCameraGimbal();
+                cameraGimbalSetYaw(0.0f);
+                cameraGimbalSetPitch(0.0f);
+                triggerEscPowerCycle();
                 break;
 
             case MAVLINK_CHANGE_DEGREE_OF_TURNS_COMMAND:
@@ -679,6 +702,17 @@ void processCompactRcPacket(const CompactRcPacket *pkt) {
     bool unstuckWasOn = (lastFlags & 0x02) != 0;
     if (unstuckRequested && !unstuckWasOn) {
         startUnstuck(currentSteeringCenter);
+    }
+
+    // Bit 7: Re-init / ESC power cycle
+    bool reinitRequested = (pkt->flags & 0x80) != 0;
+    bool reinitWasOn = (lastFlags & 0x80) != 0;
+    if (reinitRequested && !reinitWasOn) {
+        turnTo(currentSteeringCenter);
+        initCameraGimbal();
+        cameraGimbalSetYaw(0.0f);
+        cameraGimbalSetPitch(0.0f);
+        triggerEscPowerCycle();
     }
 
     lastFlags = pkt->flags;

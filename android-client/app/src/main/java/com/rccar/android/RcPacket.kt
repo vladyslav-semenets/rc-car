@@ -29,7 +29,8 @@ object RcPacket {
         gyroOn: Boolean = false,
         unstuckOn: Boolean = false,
         cameraOn: Boolean = false,
-        gearLevel: Int = 1        // 1 to 8
+        gearLevel: Int = 1,       // 1 to 8
+        reinitOn: Boolean = false
     ): ByteArray {
         val buf = ByteArray(PACKET_LEN)
         buf[0] = SYNC_BYTE
@@ -44,6 +45,7 @@ object RcPacket {
         if (unstuckOn) flags = flags or (1 shl 1)
         if (cameraOn)  flags = flags or (1 shl 2)
         flags = flags or ((gearLevel.coerceIn(1, 8) and 0x0F) shl 3)
+        if (reinitOn)  flags = flags or (1 shl 7)
         buf[6] = flags.toByte()
 
         buf[7] = computeCrc8(buf, 0, 7)

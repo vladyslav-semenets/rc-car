@@ -33,6 +33,7 @@ class CarController(
     var pitchAngle = mutableIntStateOf(0)
     var isSteeringCalibrationOn = mutableStateOf(false)
     var isUnstuckActive = mutableStateOf(false)
+    var isReinitActive = mutableStateOf(false)
     var steeringExpo = mutableFloatStateOf(prefs.getFloat("steeringExpo", 0.5f))
     var gimbalExpo = mutableFloatStateOf(prefs.getFloat("gimbalExpo", 0.3f))
     var highSpeedSteeringDamping = mutableFloatStateOf(prefs.getFloat("highSpeedSteeringDamping", 0.50f))
@@ -116,10 +117,18 @@ class CarController(
         pitchAngle.intValue = 0
         currentThrottlePercent = 0
         currentDriveAction = DriveAction.STOPPED
+        isReinitActive.value = true
         if (ble.connectionState.value == BleManager.State.CONNECTED) {
             sendCompactPacket()
         }
         send(1, p1 = 50f, p2 = degreeOfTurns.floatValue)
+        scope.launch {
+            delay(600)
+            isReinitActive.value = false
+            if (ble.connectionState.value == BleManager.State.CONNECTED) {
+                sendCompactPacket()
+            }
+        }
     }
 
     fun turnTo(d: Float) {
@@ -359,7 +368,8 @@ class CarController(
             gimbalPitchDeg = pitchAngle.intValue,
             gyroOn = isSteeringCalibrationOn.value,
             unstuckOn = isUnstuckActive.value,
-            gearLevel = transmissionSpeed.intValue
+            gearLevel = transmissionSpeed.intValue,
+            reinitOn = isReinitActive.value
         )
         ble.sendMavlinkBytes(bytes)
     }

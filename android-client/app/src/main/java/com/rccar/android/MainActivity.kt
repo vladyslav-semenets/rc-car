@@ -79,8 +79,16 @@ class MainActivity : ComponentActivity() {
     override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean =
         joystick.onMotionEvent(ev) || super.dispatchGenericMotionEvent(ev)
 
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean =
+        joystick.onMotionEvent(event) || super.onGenericMotionEvent(event)
+
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean =
         joystick.onKeyEvent(ev) || super.dispatchKeyEvent(ev)
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (joystick.onKeyEvent(event)) return true
+        return super.onKeyDown(keyCode, event)
+    }
 
     private fun setupJoystick() {
         joystick.onSteeringChanged  = { v -> car.turnTo(car.stickToSteering(v)) }

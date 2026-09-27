@@ -80,7 +80,10 @@ class JoystickManager(context: Context) {
     private fun isGamepad(device: InputDevice): Boolean {
         val src = device.sources
         return (src and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD) ||
-               (src and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK)
+               (src and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) ||
+               (src and InputDevice.SOURCE_DPAD == InputDevice.SOURCE_DPAD) ||
+               (src and InputDevice.SOURCE_CLASS_JOYSTICK != 0) ||
+               (src and InputDevice.SOURCE_CLASS_BUTTON != 0)
     }
 
     private fun connect(device: InputDevice) {
@@ -92,8 +95,12 @@ class JoystickManager(context: Context) {
     // Called from Activity.dispatchGenericMotionEvent
     fun onMotionEvent(event: MotionEvent): Boolean {
         val src = event.source
-        if (src and InputDevice.SOURCE_JOYSTICK != InputDevice.SOURCE_JOYSTICK &&
-            src and InputDevice.SOURCE_GAMEPAD != InputDevice.SOURCE_GAMEPAD) return false
+        val isGameDevice = (src and InputDevice.SOURCE_JOYSTICK != 0) ||
+                           (src and InputDevice.SOURCE_GAMEPAD != 0) ||
+                           (src and InputDevice.SOURCE_DPAD != 0) ||
+                           (src and InputDevice.SOURCE_CLASS_JOYSTICK != 0) ||
+                           (src and InputDevice.SOURCE_CLASS_BUTTON != 0)
+        if (!isGameDevice) return false
 
         // ── 1. Left stick X → steering (with deadband normalization) ──────────
         val rawLx = event.getAxisValue(MotionEvent.AXIS_X)
@@ -177,7 +184,6 @@ class JoystickManager(context: Context) {
 
     // Called from Activity.dispatchKeyEvent
     fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.action != KeyEvent.ACTION_DOWN) return false
         val btn = when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_UP        -> Button.DPAD_UP
             KeyEvent.KEYCODE_DPAD_DOWN      -> Button.DPAD_DOWN
@@ -193,7 +199,9 @@ class JoystickManager(context: Context) {
             KeyEvent.KEYCODE_BUTTON_THUMBR  -> Button.R3
             else -> return false
         }
-        onButton?.invoke(btn)
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            onButton?.invoke(btn)
+        }
         return true
     }
 
