@@ -96,7 +96,7 @@ An advanced, long-range **FPV (First Person View) Remote-Controlled Vehicle Syst
 * **`0xAA`**: Sync header byte.
 * **`Seq`**: Incremental sequence counter (0–255).
 * **`Throttle`**: Signed 8-bit integer (`-100` to `+100`%).
-* **`Steering`**: 8-bit unsigned degrees (`0` to `180`°, center calibrated at `86`°).
+* **`Steering`**: 8-bit unsigned degrees (`0` to `180`°, center calibrated at `89`°).
 * **`GimbalYaw`**: Signed 8-bit degrees (`-90` to `+90`°).
 * **`GimbalPitch`**: Signed 8-bit degrees (`-45` to `+45`°).
 * **`Flags`**: Bit 0 = Gyro ESP On/Off, Bit 1 = Unstuck active, Bits 3..6 = Transmission Gear (1–8).

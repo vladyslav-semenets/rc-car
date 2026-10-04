@@ -3,7 +3,9 @@ import Combine
 
 class CarController: ObservableObject {
     @Published var transmissionSpeed = 1   // 1-8
-    @Published var degreeOfTurns: Float = 86.0
+    @Published var degreeOfTurns: Float {
+        didSet { UserDefaults.standard.set(degreeOfTurns, forKey: "degreeOfTurns") }
+    }
     @Published var pitchAngle: Int = 0
     @Published var isSteeringCalibrationOn = false
 
@@ -46,8 +48,9 @@ class CarController: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
-        steeringExpo = UserDefaults.standard.object(forKey: "steeringExpo") as? Float ?? 0.5
-        gimbalExpo   = UserDefaults.standard.object(forKey: "gimbalExpo")   as? Float ?? 0.3
+        degreeOfTurns = UserDefaults.standard.object(forKey: "degreeOfTurns") as? Float ?? 89.0
+        steeringExpo  = UserDefaults.standard.object(forKey: "steeringExpo")  as? Float ?? 0.5
+        gimbalExpo    = UserDefaults.standard.object(forKey: "gimbalExpo")    as? Float ?? 0.3
 
         motorConfigEnabled   = UserDefaults.standard.object(forKey: "motorConfigEnabled")   as? Bool ?? true
         cfg_frontTrimUs      = UserDefaults.standard.object(forKey: "cfg_frontTrimUs")      as? Int ?? 15

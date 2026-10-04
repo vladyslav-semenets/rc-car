@@ -342,7 +342,7 @@ void onCloseJoystick() {
 
 RcCar *newRcCar() {
     RcCar *rcCar = (RcCar *)malloc(sizeof(RcCar));
-    rcCar->degreeOfTurns = 86.0f;
+    rcCar->degreeOfTurns = 89.0f;
     rcCar->speed = 50;
     rcCar->transmissionSpeed = 1;
     rcCar->pitchAngle = 0;

@@ -78,7 +78,7 @@ Designed for ultra-low latency (**5.5 ms airtime** vs 22 ms MAVLink) streamed co
 * **`0xAA`**: Sync header byte.
 * **`Seq`**: Incremental packet counter (0–255).
 * **`Throttle`**: Signed 8-bit integer (`-100` to `+100`%).
-* **`Steering`**: 8-bit unsigned degrees (`0` to `180`°, center ~`86`°).
+* **`Steering`**: 8-bit unsigned degrees (`0` to `180`°, center ~`89`°).
 * **`GimbalYaw`**: Signed 8-bit degrees (`-90` to `+90`°).
 * **`GimbalPitch`**: Signed 8-bit degrees (`-45` to `+45`°).
 * **`Flags`**: Bit 0 = Gyro ESP, Bit 1 = Unstuck active, Bits 3..6 = Gear level (1–8).

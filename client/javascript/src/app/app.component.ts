@@ -40,7 +40,7 @@ export class AppComponent implements OnInit {
 	controller: unknown = null;
 	turnTo: unknown;
 	isCarStarted: boolean = false;
-	degreeOfTurns: number = 87;
+	degreeOfTurns: number = 89;
 	pwmFrequency: number = 25000;
 	carSpeed: number = 50;
 	isCameraStarted: boolean = true;

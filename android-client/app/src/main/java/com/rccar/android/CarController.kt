@@ -27,8 +27,8 @@ class CarController(
 
     // Vehicle control state
     var transmissionSpeed = mutableIntStateOf(1)
-    var degreeOfTurns = mutableFloatStateOf(86f)
-    var currentSteeringAngle = mutableFloatStateOf(86f)
+    var degreeOfTurns = mutableFloatStateOf(prefs.getFloat("degreeOfTurns", 89f))
+    var currentSteeringAngle = mutableFloatStateOf(prefs.getFloat("degreeOfTurns", 89f))
     var currentGimbalYaw = mutableFloatStateOf(0f)
     var pitchAngle = mutableIntStateOf(prefs.getInt("savedPitchAngle", 0))
     var isSteeringCalibrationOn = mutableStateOf(false)
@@ -140,8 +140,24 @@ class CarController(
         }
     }
 
+    fun setDegreeOfTurns(deg: Float) {
+        val clamped = deg.coerceIn(0f, 180f)
+        degreeOfTurns.floatValue = clamped
+        currentSteeringAngle.floatValue = clamped
+        prefs.edit().putFloat("degreeOfTurns", clamped).apply()
+        send(2, p1 = clamped)
+        if (ble.connectionState.value == BleManager.State.CONNECTED) {
+            sendCompactPacket()
+        }
+    }
+
     fun changeDegrees() {
+        prefs.edit().putFloat("degreeOfTurns", degreeOfTurns.floatValue).apply()
+        currentSteeringAngle.floatValue = degreeOfTurns.floatValue
         send(2, p1 = degreeOfTurns.floatValue)
+        if (ble.connectionState.value == BleManager.State.CONNECTED) {
+            sendCompactPacket()
+        }
     }
 
     fun resetTurns() {

@@ -206,7 +206,7 @@ static float gyroYawOffset = 0.0f;
 static float scalingFactor = 0.40f;
 static float deadZone = 1.0f;
 static int   MPU6050Handle = -1;
-static float currentSteeringCenter = 86.0f;
+static float currentSteeringCenter = NEUTRAL_ANGLE;
 
 static bool  isCarTurning = false;
 static float correctionAngle = 0.0f;

@@ -18,7 +18,7 @@ The custom **8-Byte Binary Protocol** compresses all essential real-time driving
 | **0** | `sync` | `uint8_t` | `0xAA` | Frame synchronization magic byte |
 | **1** | `seq` | `uint8_t` | `0 .. 255` | Rolling packet sequence counter |
 | **2** | `throttle` | `int8_t` | `-100 .. +100` | Throttle percentage (negative = reverse, positive = forward) |
-| **3** | `steering` | `uint8_t` | `0 .. 180` | Steering servo angle in degrees (center calibrated ~86°) |
+| **3** | `steering` | `uint8_t` | `0 .. 180` | Steering servo angle in degrees (center calibrated ~89°) |
 | **4** | `gimbalYaw` | `int8_t` | `-90 .. +90` | Camera gimbal pan angle in degrees |
 | **5** | `gimbalPitch`| `int8_t` | `-45 .. +45` | Camera gimbal tilt angle in degrees |
 | **6** | `flags` | `uint8_t` | Bitmask | Auxiliary controls and transmission gear (see bitfield) |

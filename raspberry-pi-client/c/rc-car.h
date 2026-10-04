@@ -75,7 +75,7 @@
 #define GYRO_ZOUT_H          0x47   /* Z-axis gyro output register (high)   */
 #define GYRO_SENSITIVITY     131.0  /* LSB / (deg/s) at ±250 deg/s range    */
 #define MAX_CORRECTION_ANGLE 20.0   /* Max steering correction angle (deg)  */
-#define NEUTRAL_ANGLE        86.0   /* Straight-ahead servo angle (deg)     */
+#define NEUTRAL_ANGLE        89.0   /* Straight-ahead servo angle (deg)     */
 
 typedef struct RcCar {
     void (*processMavlinkCommands)(mavlink_message_t *msg);

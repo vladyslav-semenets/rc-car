@@ -82,7 +82,7 @@ High-performance onboard C firmware for the Raspberry Pi 4 Model B. It manages P
 
 | GPIO Pin | Function | Pulse Width Range | Description |
 | :--- | :--- | :--- | :--- |
-| **GPIO 17** | Steering Servo | 500 – 2500 µs | Digital steering servo (center ~86°) |
+| **GPIO 17** | Steering Servo | 500 – 2500 µs | Digital steering servo (center ~89°) |
 | **GPIO 23** | Front Axle ESC | 1000 – 2000 µs | Front Hobbywing QuicRun 1625 ESC |
 | **GPIO 25** | Rear Axle ESC | 1000 – 2000 µs | Rear Hobbywing QuicRun 1625 ESC |
 | **GPIO 16** | ESC Power Relay | Digital Output | 0 = Power ON, 1 = Power OFF (failsafe) |

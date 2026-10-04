@@ -282,7 +282,31 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
             // Car State
             PanelCard("Vehicle Status") {
                 StatusRow("Gear", "${car.transmissionSpeed.intValue} / 8")
-                StatusRow("Turn°", "%.1f".format(car.degreeOfTurns.floatValue))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Turn Trim", fontSize = 11.sp, color = Color.Gray, modifier = Modifier.weight(1f))
+                    IconButton(
+                        onClick = {
+                            car.degreeOfTurns.floatValue = (car.degreeOfTurns.floatValue - 1f).coerceAtLeast(0f)
+                            car.changeDegrees()
+                        },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Text("−", fontSize = 12.sp)
+                    }
+                    Text("%.1f°".format(car.degreeOfTurns.floatValue), fontSize = 11.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                        modifier = Modifier.width(36.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    IconButton(
+                        onClick = {
+                            car.degreeOfTurns.floatValue = (car.degreeOfTurns.floatValue + 1f).coerceAtMost(180f)
+                            car.changeDegrees()
+                        },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Text("+", fontSize = 12.sp)
+                    }
+                }
                 StatusRow("Pitch", "${car.pitchAngle.intValue}°")
                 StatusRow("Gyro", if (car.isSteeringCalibrationOn.value) "ON" else "OFF")
             }
@@ -435,6 +459,7 @@ fun SettingsDialog(prefs: android.content.SharedPreferences, car: CarController,
     var piIP      by remember { mutableStateOf(prefs.getString("piIP", "100.108.40.34")!!) }
     var webPort   by remember { mutableStateOf(prefs.getString("webrtcPort", "8889")!!) }
     var udpPort   by remember { mutableStateOf(prefs.getInt("udpPort", 8565).toString()) }
+    var stCenter  by remember { mutableFloatStateOf(car.degreeOfTurns.floatValue) }
     var stExpo    by remember { mutableFloatStateOf(car.steeringExpo.floatValue) }
     var gimExpo   by remember { mutableFloatStateOf(car.gimbalExpo.floatValue) }
     var stDamp    by remember { mutableFloatStateOf(car.highSpeedSteeringDamping.floatValue) }
@@ -450,6 +475,24 @@ fun SettingsDialog(prefs: android.content.SharedPreferences, car: CarController,
                 OutlinedTextField(value = piIP,    onValueChange = { piIP = it },    label = { Text("Pi IP (for WebRTC)") },    singleLine = true)
                 OutlinedTextField(value = webPort, onValueChange = { webPort = it }, label = { Text("WebRTC stream port") }, singleLine = true)
                 OutlinedTextField(value = udpPort, onValueChange = { udpPort = it }, label = { Text("UDP port (Optional)") },   singleLine = true)
+
+                Text("Steering Center Trim: ${"%.1f".format(stCenter)}°", style = MaterialTheme.typography.labelMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Slider(
+                        value = stCenter,
+                        onValueChange = { stCenter = it },
+                        valueRange = 60f..120f,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    OutlinedButton(
+                        onClick = { stCenter = 89f },
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Text("Reset 89°", fontSize = 10.sp)
+                    }
+                }
 
                 Text("Steering Expo: ${"%.2f".format(stExpo)}", style = MaterialTheme.typography.labelMedium)
                 Slider(value = stExpo, onValueChange = { stExpo = it }, valueRange = 0f..1f)
@@ -468,6 +511,7 @@ fun SettingsDialog(prefs: android.content.SharedPreferences, car: CarController,
                     .putString("webrtcPort", webPort)
                     .putInt("udpPort", udpPort.toIntOrNull() ?: 8565)
                     .apply()
+                car.setDegreeOfTurns(stCenter)
                 car.steeringExpo.floatValue = stExpo
                 car.gimbalExpo.floatValue = gimExpo
                 car.highSpeedSteeringDamping.floatValue = stDamp
