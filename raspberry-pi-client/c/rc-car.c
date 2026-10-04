@@ -402,20 +402,24 @@ void initCameraGimbal(void) {
 }
 
 void cameraGimbalSetYaw(const float degrees) {
-    const int pulseWidth = (int)floorf(
+    int pulseWidth = (int)floorf(
         ((degrees + 90.0f) / 180.0f) *
         (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) +
         CAR_CAMERA_GIMBAL_MIN_PMW
     );
+    if (pulseWidth < CAR_CAMERA_GIMBAL_MIN_PMW) pulseWidth = CAR_CAMERA_GIMBAL_MIN_PMW;
+    if (pulseWidth > CAR_CAMERA_GIMBAL_MAX_PMW) pulseWidth = CAR_CAMERA_GIMBAL_MAX_PMW;
     gpioServo(CAR_CAMERA_GIMBAL_PIN4, pulseWidth);
 }
 
 void cameraGimbalSetPitch(const float degrees) {
-    const int pulseWidth = (int)floorf(
+    int pulseWidth = (int)floorf(
         ((degrees + 90.0f) / 180.0f) *
         (CAR_CAMERA_GIMBAL_MAX_PMW - CAR_CAMERA_GIMBAL_MIN_PMW) +
         CAR_CAMERA_GIMBAL_MIN_PMW
     );
+    if (pulseWidth < CAR_CAMERA_GIMBAL_MIN_PMW) pulseWidth = CAR_CAMERA_GIMBAL_MIN_PMW;
+    if (pulseWidth > CAR_CAMERA_GIMBAL_MAX_PMW) pulseWidth = CAR_CAMERA_GIMBAL_MAX_PMW;
     gpioServo(CAR_CAMERA_GIMBAL_PIN3, pulseWidth);
 }
 

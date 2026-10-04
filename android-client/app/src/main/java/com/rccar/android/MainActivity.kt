@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
         joystick.onSteeringChanged  = { v -> car.turnTo(car.stickToSteering(v)) }
         joystick.onSteeringReleased = { car.resetTurns() }
         joystick.onGimbalYawChanged = { v -> car.gimbalYaw(car.stickToGimbalYaw(v)) }
-        joystick.onGimbalYawReleased = { car.resetGimbal() }
+        joystick.onGimbalYawReleased = { car.resetGimbalYaw() }
         joystick.onForward  = { car.forward(it) }
         joystick.onBackward = { car.backward(it) }
         joystick.onStop     = { car.neutral() }
@@ -112,14 +112,8 @@ class MainActivity : ComponentActivity() {
                 }
                 JoystickManager.Button.R3  -> car.speedUp()
                 JoystickManager.Button.L3  -> car.speedDown()
-                JoystickManager.Button.L1  -> {
-                    car.pitchAngle.intValue = (car.pitchAngle.intValue - 1).coerceAtLeast(-90)
-                    car.gimbalPitch()
-                }
-                JoystickManager.Button.R1  -> {
-                    car.pitchAngle.intValue = (car.pitchAngle.intValue + 1).coerceAtMost(90)
-                    car.gimbalPitch()
-                }
+                JoystickManager.Button.L1  -> car.setPitch(car.pitchAngle.intValue - 5)
+                JoystickManager.Button.R1  -> car.setPitch(car.pitchAngle.intValue + 5)
                 JoystickManager.Button.A   -> car.stopCamera()
                 JoystickManager.Button.Y   -> car.startCamera()
                 JoystickManager.Button.B   -> car.neutral()
@@ -295,6 +289,45 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
 
             // Motor config panel
             MotorConfigPanel(car = car)
+
+            // Camera Tilt Control & Presets
+            PanelCard("Camera Tilt (${car.pitchAngle.intValue}°)") {
+                Slider(
+                    value = car.pitchAngle.intValue.toFloat(),
+                    onValueChange = { car.setPitch(it.toInt()) },
+                    valueRange = -60f..45f,
+                    modifier = Modifier.fillMaxWidth().height(24.dp)
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                ) {
+                    Button(
+                        onClick = { car.setPitch(-15) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF37474F)),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(2.dp)
+                    ) {
+                        Text("Road -15°", fontSize = 9.sp, color = Color.White)
+                    }
+                    Button(
+                        onClick = { car.setPitch(0) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF37474F)),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(2.dp)
+                    ) {
+                        Text("Level 0°", fontSize = 9.sp, color = Color.White)
+                    }
+                    Button(
+                        onClick = { car.setPitch(15) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF37474F)),
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(2.dp)
+                    ) {
+                        Text("Up +15°", fontSize = 9.sp, color = Color.White)
+                    }
+                }
+            }
 
             // Controls
             PanelCard("Controls") {

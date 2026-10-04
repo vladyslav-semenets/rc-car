@@ -30,7 +30,7 @@ class CarController(
     var degreeOfTurns = mutableFloatStateOf(86f)
     var currentSteeringAngle = mutableFloatStateOf(86f)
     var currentGimbalYaw = mutableFloatStateOf(0f)
-    var pitchAngle = mutableIntStateOf(0)
+    var pitchAngle = mutableIntStateOf(prefs.getInt("savedPitchAngle", 0))
     var isSteeringCalibrationOn = mutableStateOf(false)
     var isUnstuckActive = mutableStateOf(false)
     var isReinitActive = mutableStateOf(false)
@@ -114,7 +114,7 @@ class CarController(
     fun initCar() {
         currentSteeringAngle.floatValue = degreeOfTurns.floatValue
         currentGimbalYaw.floatValue = 0f
-        pitchAngle.intValue = 0
+        pitchAngle.intValue = prefs.getInt("savedPitchAngle", 0)
         currentThrottlePercent = 0
         currentDriveAction = DriveAction.STOPPED
         isReinitActive.value = true
@@ -191,18 +191,30 @@ class CarController(
     fun rebootPi()             { send(17) }
     fun shutdownPi()           { send(18) }
 
-    fun resetGimbal() {
+    fun resetGimbalYaw() {
         currentGimbalYaw.floatValue = 0f
-        pitchAngle.intValue = 0
         if (ble.connectionState.value == BleManager.State.CONNECTED) {
             sendCompactPacket()
         } else {
-            scope.launch {
-                repeat(3) {
-                    send(12)
-                    delay(15)
-                }
-            }
+            send(10, p1 = 0f)
+        }
+    }
+
+    fun setPitch(deg: Int) {
+        val clamped = deg.coerceIn(-60, 45)
+        pitchAngle.intValue = clamped
+        prefs.edit().putInt("savedPitchAngle", clamped).apply()
+        gimbalPitch()
+    }
+
+    fun resetGimbal() {
+        currentGimbalYaw.floatValue = 0f
+        // Keep pitch at saved preference value
+        if (ble.connectionState.value == BleManager.State.CONNECTED) {
+            sendCompactPacket()
+        } else {
+            send(10, p1 = 0f)
+            send(11, p1 = pitchAngle.intValue.toFloat())
         }
     }
 
@@ -269,21 +281,26 @@ class CarController(
     // MARK: - Stick mapping (Speed-Sensitive Dynamic Dual-Rates)
 
     fun stickToSteering(v: Float): Float {
+        if (Math.abs(v) < 0.001f) return degreeOfTurns.floatValue
+
         val curved = applyExpo(v, steeringExpo.floatValue)
-        // Dynamic Speed-Sensitive Steering:
-        // Dampen steering throw progressively as throttle / gear increases to prevent rollovers
+
+        // Speed-Sensitive Dynamic Steering Damping:
+        // ONLY active when the vehicle is actually in motion!
+        // When stationary (throttle = 0%), damping is 0.0 -> 100% full steering throw for parking and sharp turns
         val throttleFraction = (Math.abs(currentThrottlePercent) / 100f).coerceIn(0f, 1f)
-        val gearFraction = (transmissionSpeed.intValue / 8f).coerceIn(0f, 1f)
-        val speedFactor = maxOf(throttleFraction, gearFraction)
-        
-        // Non-linear power curve so damping kicks in firmly as soon as the car is moving fast
-        val damping = (Math.pow(speedFactor.toDouble(), 0.75).toFloat() * highSpeedSteeringDamping.floatValue)
-            .coerceIn(0f, 0.85f)
-            
+        val gearScale = (transmissionSpeed.intValue / 8f).coerceIn(0.2f, 1f)
+        val actualSpeedFactor = throttleFraction * gearScale
+
+        // Damping smoothly scales up to highSpeedSteeringDamping at full throttle
+        val damping = (actualSpeedFactor * highSpeedSteeringDamping.floatValue).coerceIn(0f, 0.75f)
         val effectiveTurn = curved * (1.0f - damping)
 
-        return if (effectiveTurn >= 0) degreeOfTurns.floatValue * (1f - effectiveTurn)
-        else degreeOfTurns.floatValue + (-effectiveTurn) * (140f - degreeOfTurns.floatValue)
+        return if (effectiveTurn >= 0) {
+            degreeOfTurns.floatValue * (1f - effectiveTurn)
+        } else {
+            degreeOfTurns.floatValue + (-effectiveTurn) * (140f - degreeOfTurns.floatValue)
+        }
     }
 
     fun stickToGimbalYaw(v: Float): Float = applyExpo(v, gimbalExpo.floatValue) * 90f

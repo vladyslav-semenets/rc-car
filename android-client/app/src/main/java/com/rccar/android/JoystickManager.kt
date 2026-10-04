@@ -36,7 +36,7 @@ class JoystickManager(context: Context) {
         A, B, X, Y, L1, R1, L3, R3
     }
 
-    private val stickDeadzone = 0.08f
+    private val stickDeadzone = 0.12f
     private val triggerDeadzone = 0.07f
 
     private var gamepadDevice: InputDevice? = null
@@ -114,10 +114,12 @@ class JoystickManager(context: Context) {
             wasSteering = true
             onSteeringChanged?.invoke(lx)
             startVibration((abs(lx) * 0.3f * 255).toInt())
-        } else if (wasSteering) {
-            wasSteering = false
+        } else {
+            if (wasSteering) {
+                wasSteering = false
+                if (rightTrigger.floatValue <= 0.001f && leftTrigger.floatValue <= 0.001f) stopVibration()
+            }
             onSteeringReleased?.invoke()
-            if (rightTrigger.floatValue <= 0.001f && leftTrigger.floatValue <= 0.001f) stopVibration()
         }
 
         // ── 2. Right stick X → gimbal yaw ─────────────────────────────────────
@@ -131,8 +133,10 @@ class JoystickManager(context: Context) {
         if (abs(rx) > 0.001f) {
             wasGimbalTurning = true
             onGimbalYawChanged?.invoke(rx)
-        } else if (wasGimbalTurning) {
-            wasGimbalTurning = false
+        } else {
+            if (wasGimbalTurning) {
+                wasGimbalTurning = false
+            }
             onGimbalYawReleased?.invoke()
         }
 

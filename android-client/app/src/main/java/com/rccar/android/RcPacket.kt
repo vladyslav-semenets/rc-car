@@ -37,8 +37,8 @@ object RcPacket {
         buf[1] = seq++
         buf[2] = throttlePercent.coerceIn(-100, 100).toByte()
         buf[3] = steeringAngleDeg.toInt().coerceIn(0, 180).toByte()
-        buf[4] = gimbalYawDeg.toInt().coerceIn(-90, 90).toByte()
-        buf[5] = gimbalPitchDeg.coerceIn(-45, 45).toByte()
+        buf[4] = gimbalYawDeg.toInt().coerceIn(-120, 120).toByte()
+        buf[5] = gimbalPitchDeg.coerceIn(-90, 90).toByte()
 
         var flags = 0
         if (gyroOn)    flags = flags or (1 shl 0)
