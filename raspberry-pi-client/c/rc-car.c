@@ -316,7 +316,12 @@ void *steeringWheelCorrectionThread(void *arg) {
 
 /* ── ESC control ─────────────────────────────────────────────────────────── */
 
+static volatile bool escLowBatCutoff = false;
+
 void move(const int speed, const char *direction) {
+    if (escLowBatCutoff) {
+        return;
+    }
     int target = CAR_ESC_NEUTRAL_PWM;
 
     if (strcmp(direction, "forward") == 0) {
@@ -363,6 +368,7 @@ static void *escPowerCycleThread(void *arg) {
 }
 
 void triggerEscPowerCycle(void) {
+    escLowBatCutoff = false;
     setEscToNeutralPosition();
     pthread_t th;
     if (pthread_create(&th, NULL, escPowerCycleThread, NULL) == 0) {
@@ -772,6 +778,7 @@ static void *batteryTelemetryThread(void *arg) {
     int fd = -1;
     uint8_t seq = 0;
     uint32_t logCounter = 0;
+    int bat1CritStreak = 0;
 
     while (1) {
         if (fd < 0) {
@@ -812,6 +819,19 @@ static void *batteryTelemetryThread(void *arg) {
             pkt.crc8 = computeCrc8((const uint8_t *)&pkt, RC_TELEMETRY_LEN - 1);
 
             sendSerialBinary((const uint8_t *)&pkt, RC_TELEMETRY_LEN);
+        }
+
+        if (online && v1 > 1.0f && v1 < LIPO_2S_CRIT_V) {
+            bat1CritStreak++;
+            if (!escLowBatCutoff && bat1CritStreak >= 5) {
+                escLowBatCutoff = true;
+                setEscToNeutralPosition();
+                gpioWrite(CAR_ESC_ENABLE_PIN, 1); /* Relay OFF: cut ESC power */
+                printf("[ESC] CRITICAL BAT1 (%.2fV < %.2fV for 5s) -> ESC power relay OFF!\n",
+                       v1, LIPO_2S_CRIT_V);
+            }
+        } else {
+            bat1CritStreak = 0;
         }
 
         if (online && (logCounter % 5 == 0 || v1 < LIPO_2S_WARN_V || v2 < LIPO_2S_WARN_V)) {
