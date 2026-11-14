@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Setup software I2C (i2c-gpio) on Raspberry Pi for INA3221 battery monitor.
-# Default: SDA = GPIO 12 (Pin 32), SCL = GPIO 5 (Pin 29), Bus = 3 (/dev/i2c-3).
+# Default: SDA = GPIO 12 (Pin 32), SCL = GPIO 13 (Pin 33), Bus = 3 (/dev/i2c-3).
 
 BUS=3
 SDA_GPIO=12
@@ -14,12 +14,12 @@ for arg in "$@"; do
         --sda=*) SDA_GPIO="${arg#*=}" ;;
         --scl=*) SCL_GPIO="${arg#*=}" ;;
         -h|--help)
-            echo "Usage: sudo $0 [--sda=12] [--scl=5] [--bus=3]"
+            echo "Usage: sudo $0 [--sda=12] [--scl=13] [--bus=3]"
             exit 0
             ;;
         *)
             echo "Unknown argument: $arg"
-            echo "Usage: sudo $0 [--sda=12] [--scl=5] [--bus=3]"
+            echo "Usage: sudo $0 [--sda=12] [--scl=13] [--bus=3]"
             exit 1
             ;;
     esac
@@ -32,10 +32,10 @@ fi
 
 if [[ -z "$SCL_GPIO" ]]; then
     if [[ -t 0 ]]; then
-        read -r -p "Enter SCL GPIO number (default 5 = Pin 29): " input_scl
-        SCL_GPIO="${input_scl:-5}"
+        read -r -p "Enter SCL GPIO number (default 13 = Pin 33): " input_scl
+        SCL_GPIO="${input_scl:-13}"
     else
-        SCL_GPIO=5
+        SCL_GPIO=13
     fi
 fi
 
@@ -70,13 +70,21 @@ if [[ ! -f "${CONFIG_TXT}.bak.ina3221" ]]; then
     cp "$CONFIG_TXT" "${CONFIG_TXT}.bak.ina3221"
 fi
 
-# Remove any previous i2c-gpio line for this bus, then append clean overlay
-OVERLAY_LINE="dtoverlay=i2c-gpio,bus=${BUS},i2c_gpio_sda=${SDA_GPIO},i2c_gpio_scl=${SCL_GPIO},i2c_gpio_delay_us=2"
+# Remove any previous i2c-gpio / gpio pull-up lines for this bus, then append clean config
+OVERLAY_LINE="dtoverlay=i2c-gpio,bus=${BUS},i2c_gpio_sda=${SDA_GPIO},i2c_gpio_scl=${SCL_GPIO},i2c_gpio_delay_us=10"
+GPIO_PU_LINE="gpio=${SDA_GPIO},${SCL_GPIO}=pu"
 TMP_CFG=$(mktemp)
-grep -vE "^dtoverlay=i2c-gpio,bus=${BUS}\b" "$CONFIG_TXT" > "$TMP_CFG" || true
+grep -vE "^dtoverlay=i2c-gpio,bus=${BUS}\b|^gpio=${SDA_GPIO},${SCL_GPIO}=pu$" "$CONFIG_TXT" > "$TMP_CFG" || true
+echo "$GPIO_PU_LINE" >> "$TMP_CFG"
 echo "$OVERLAY_LINE" >> "$TMP_CFG"
 mv "$TMP_CFG" "$CONFIG_TXT"
+echo "==> Added to ${CONFIG_TXT}: ${GPIO_PU_LINE}"
 echo "==> Added to ${CONFIG_TXT}: ${OVERLAY_LINE}"
+
+# Enable internal pull-ups immediately if pinctrl is available
+if command -v pinctrl >/dev/null 2>&1; then
+    pinctrl set "${SDA_GPIO},${SCL_GPIO}" ip pu || true
+fi
 
 # Add INA3221_I2C_DEV to raspberry-pi-client/c/.env if present or create it
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
