@@ -30,6 +30,7 @@ set(SOURCES
         main.c
         websocket.h websocket.c
         rc-car.c rc-car.h
+        ina3221.c ina3221.h
         udp.c udp.h
         serial.c serial.h
         libs/env/dotenv.c libs/env/dotenv.h

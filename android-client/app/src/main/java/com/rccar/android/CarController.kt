@@ -51,6 +51,15 @@ class CarController(
     // Downlink Telemetry State
     var downlinkPacketCount = mutableIntStateOf(0)
     var lastTelemetryTimeMs = mutableStateOf(0L)
+    var bat1Voltage = mutableFloatStateOf(0f)
+    var bat2Voltage = mutableFloatStateOf(0f)
+    var bat1Percent = mutableIntStateOf(0)
+    var bat2Percent = mutableIntStateOf(0)
+    var isBat1Low = mutableStateOf(false)
+    var isBat1Crit = mutableStateOf(false)
+    var isBat2Low = mutableStateOf(false)
+    var isBat2Crit = mutableStateOf(false)
+    var isBatterySensorOnline = mutableStateOf(false)
 
     enum class DriveAction {
         STOPPED,
@@ -68,6 +77,17 @@ class CarController(
         ble.onTelemetryReceived = { bytes ->
             downlinkPacketCount.intValue++
             lastTelemetryTimeMs.value = System.currentTimeMillis()
+            TelemetryPacket.decode(bytes)?.let { t ->
+                isBatterySensorOnline.value = t.isSensorOnline
+                bat1Voltage.floatValue = t.bat1Volts
+                bat2Voltage.floatValue = t.bat2Volts
+                bat1Percent.intValue = t.bat1Percent
+                bat2Percent.intValue = t.bat2Percent
+                isBat1Low.value = t.isBat1Low
+                isBat1Crit.value = t.isBat1Crit
+                isBat2Low.value = t.isBat2Low
+                isBat2Crit.value = t.isBat2Crit
+            }
         }
     }
 

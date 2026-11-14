@@ -224,6 +224,32 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                     )
                 }
+
+                // Battery Telemetry (2S LiPo INA3221)
+                if (car.isBatterySensorOnline.value) {
+                    val b1Color = when {
+                        car.isBat1Crit.value -> Color(0xFFF44336)
+                        car.isBat1Low.value  -> Color(0xFFFF9800)
+                        else                 -> Color(0xFF4CAF50)
+                    }
+                    val b2Color = when {
+                        car.isBat2Crit.value -> Color(0xFFF44336)
+                        car.isBat2Low.value  -> Color(0xFFFF9800)
+                        else                 -> Color(0xFF4CAF50)
+                    }
+                    Text(
+                        "🔋 B1: ${"%.2f".format(car.bat1Voltage.floatValue)}V (${car.bat1Percent.intValue}%)",
+                        fontSize = 11.sp,
+                        color = b1Color,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                    Text(
+                        "B2: ${"%.2f".format(car.bat2Voltage.floatValue)}V (${car.bat2Percent.intValue}%)",
+                        fontSize = 11.sp,
+                        color = b2Color,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
             }
         }
 
@@ -309,6 +335,28 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
                 }
                 StatusRow("Pitch", "${car.pitchAngle.intValue}°")
                 StatusRow("Gyro", if (car.isSteeringCalibrationOn.value) "ON" else "OFF")
+            }
+
+            // Battery Telemetry (2S LiPo)
+            PanelCard("Battery (2S LiPo)") {
+                if (car.isBatterySensorOnline.value) {
+                    BatteryStatusRow(
+                        label = "BAT 1",
+                        volts = car.bat1Voltage.floatValue,
+                        percent = car.bat1Percent.intValue,
+                        isLow = car.isBat1Low.value,
+                        isCrit = car.isBat1Crit.value
+                    )
+                    BatteryStatusRow(
+                        label = "BAT 2",
+                        volts = car.bat2Voltage.floatValue,
+                        percent = car.bat2Percent.intValue,
+                        isLow = car.isBat2Low.value,
+                        isCrit = car.isBat2Crit.value
+                    )
+                } else {
+                    StatusRow("Sensor", "Offline / Waiting")
+                }
             }
 
             // Motor config panel
@@ -649,6 +697,29 @@ fun StatusRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Text(label, fontSize = 11.sp, color = Color.Gray, modifier = Modifier.weight(1f))
         Text(value, fontSize = 11.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+    }
+}
+
+@Composable
+fun BatteryStatusRow(label: String, volts: Float, percent: Int, isLow: Boolean, isCrit: Boolean) {
+    val color = when {
+        isCrit -> Color(0xFFF44336)
+        isLow  -> Color(0xFFFF9800)
+        else   -> Color(0xFF4CAF50)
+    }
+    val tag = when {
+        isCrit -> " CRIT"
+        isLow  -> " LOW"
+        else   -> ""
+    }
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(label, fontSize = 11.sp, color = Color.Gray, modifier = Modifier.weight(1f))
+        Text(
+            "${"%.2f".format(volts)}V (${percent}%)$tag",
+            fontSize = 11.sp,
+            color = color,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+        )
     }
 }
 

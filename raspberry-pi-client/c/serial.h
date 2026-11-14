@@ -6,8 +6,11 @@
 #include <stddef.h>
 #include "libs/mavlink/common/mavlink.h"
 
-#define RC_COMPACT_SYNC 0xAA
-#define RC_COMPACT_LEN  8
+#define RC_COMPACT_SYNC    0xAA
+#define RC_COMPACT_LEN     8
+
+#define RC_TELEMETRY_SYNC  0xAB
+#define RC_TELEMETRY_LEN   8
 
 typedef struct __attribute__((packed)) {
     uint8_t sync;        /* 0xAA */
@@ -19,6 +22,15 @@ typedef struct __attribute__((packed)) {
     uint8_t flags;       /* bit 0: Gyro, bit 1: Unstuck, bit 2: Camera, bit 3..6: Gear */
     uint8_t crc8;        /* CRC-8 */
 } CompactRcPacket;
+
+typedef struct __attribute__((packed)) {
+    uint8_t  sync;       /* 0xAB */
+    uint8_t  seq;        /* Packet sequence number */
+    uint16_t bat1_mv;    /* Battery 1 bus voltage in mV (little-endian) */
+    uint16_t bat2_mv;    /* Battery 2 bus voltage in mV (little-endian) */
+    uint8_t  flags;      /* bit 0: bat1 low, bit 1: bat1 crit, bit 2: bat2 low, bit 3: bat2 crit, bit 4: sensor online */
+    uint8_t  crc8;       /* CRC-8 (poly 0x07) over bytes 0..6 */
+} TelemetryPacket;
 
 typedef void (*MavlinkMessageCallback)(mavlink_message_t *msg);
 typedef void (*CompactRcPacketCallback)(const CompactRcPacket *pkt);

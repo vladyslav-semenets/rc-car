@@ -19,6 +19,7 @@
 #endif
 
 #include "rc-car.h"
+#include "ina3221.h"
 #include "serial.h"
 
 pid_t mediaMtxPid = -1;
@@ -736,6 +737,80 @@ void processCompactRcPacket(const CompactRcPacket *pkt) {
     lastFlags = pkt->flags;
 }
 
+/* ── Battery telemetry thread (INA3221 -> LoRa Downlink) ─────────────────── */
+
+static pthread_t batteryTelemetryThreadHandle;
+
+static uint16_t voltsToClampedMv(float v) {
+    if (v <= 0.0f) return 0;
+    float mv = v * 1000.0f;
+    if (mv >= 65535.0f) return 65535;
+    return (uint16_t)(mv + 0.5f);
+}
+
+static void *batteryTelemetryThread(void *arg) {
+    (void)arg;
+    const char *i2cDev = getenv("INA3221_I2C_DEV");
+    int fd = -1;
+    uint8_t seq = 0;
+    uint32_t logCounter = 0;
+
+    while (1) {
+        if (fd < 0) {
+            fd = ina3221_open(i2cDev);
+        }
+
+        float v1 = 0.0f;
+        float v2 = 0.0f;
+        bool online = false;
+
+        if (fd >= 0) {
+            if (ina3221_read_bus_voltage(fd, INA3221_REG_VBUS_CH1, &v1) == 0 &&
+                ina3221_read_bus_voltage(fd, INA3221_REG_VBUS_CH2, &v2) == 0) {
+                online = true;
+            } else {
+                ina3221_close(fd);
+                fd = -1;
+            }
+        }
+
+        if (isSerialConnected()) {
+            TelemetryPacket pkt;
+            memset(&pkt, 0, sizeof(pkt));
+            pkt.sync = RC_TELEMETRY_SYNC;
+            pkt.seq = seq++;
+            pkt.bat1_mv = voltsToClampedMv(v1);
+            pkt.bat2_mv = voltsToClampedMv(v2);
+
+            uint8_t flags = 0;
+            if (online) {
+                flags |= (1 << 4); /* bit 4: sensor online */
+                if (v1 > 1.0f && v1 < LIPO_2S_WARN_V) flags |= (1 << 0);
+                if (v1 > 1.0f && v1 < LIPO_2S_CRIT_V) flags |= (1 << 1);
+                if (v2 > 1.0f && v2 < LIPO_2S_WARN_V) flags |= (1 << 2);
+                if (v2 > 1.0f && v2 < LIPO_2S_CRIT_V) flags |= (1 << 3);
+            }
+            pkt.flags = flags;
+            pkt.crc8 = computeCrc8((const uint8_t *)&pkt, RC_TELEMETRY_LEN - 1);
+
+            sendSerialBinary((const uint8_t *)&pkt, RC_TELEMETRY_LEN);
+        }
+
+        if (online && (logCounter % 5 == 0 || v1 < LIPO_2S_WARN_V || v2 < LIPO_2S_WARN_V)) {
+            printf("[INA3221] BAT1: %.2fV (%d%%) | BAT2: %.2fV (%d%%)%s\n",
+                   v1, ina3221_estimate_lipo_2s_percent(v1),
+                   v2, ina3221_estimate_lipo_2s_percent(v2),
+                   (v1 < LIPO_2S_CRIT_V || v2 < LIPO_2S_CRIT_V) ? " [CRITICAL]" :
+                   (v1 < LIPO_2S_WARN_V || v2 < LIPO_2S_WARN_V) ? " [LOW]" : "");
+        }
+
+        logCounter++;
+        sleep(1);
+    }
+
+    return NULL;
+}
+
 /* ── Initialisation ──────────────────────────────────────────────────────── */
 
 RcCar *newRcCar(void) {
@@ -754,6 +829,10 @@ RcCar *newRcCar(void) {
 
     if (pthread_create(&motorThreadHandle, NULL, motorThread, NULL) != 0) {
         fprintf(stderr, "[Motor] failed to create slew thread\n");
+    }
+
+    if (pthread_create(&batteryTelemetryThreadHandle, NULL, batteryTelemetryThread, NULL) != 0) {
+        fprintf(stderr, "[INA3221] failed to create battery telemetry thread\n");
     }
 
     return rcCar;
