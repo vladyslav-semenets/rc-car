@@ -220,6 +220,24 @@ void initMPU6050(int handle) {
     usleep(100000);
 }
 
+/**
+ * Probes I2C buses 1 and 3 for the MPU6050 (0x68) using WHO_AM_I (0x75)
+ * and returns an open pigpio I2C handle, or -1 if not found on either bus.
+ */
+static int openMPU6050(void) {
+    static const unsigned buses[] = {1, 3};
+    for (size_t i = 0; i < sizeof(buses) / sizeof(buses[0]); i++) {
+        int h = i2cOpen(buses[i], MPU6050_ADDRESS, 0);
+        if (h < 0) continue;
+        if (i2cReadByteData(h, 0x75) >= 0) {
+            printf("[MPU6050] Found on /dev/i2c-%u (0x%02X)\n", buses[i], MPU6050_ADDRESS);
+            return h;
+        }
+        i2cClose(h);
+    }
+    return -1;
+}
+
 void deinitMPU6050(int handle) {
     i2cClose(handle);
 }
@@ -559,7 +577,7 @@ void processMavlinkCommands(mavlink_message_t *msg) {
                 break;
 
             case MAVLINK_STEERING_CALIBRATION_ON_COMMAND:
-                MPU6050Handle = i2cOpen(1, MPU6050_ADDRESS, 0);
+                MPU6050Handle = openMPU6050();
                 if (MPU6050Handle < 0) {
                     printf("[MPU6050] failed to open I2C connection\n");
                 } else {
@@ -699,7 +717,7 @@ void processCompactRcPacket(const CompactRcPacket *pkt) {
     bool gyroRequested = (pkt->flags & 0x01) != 0;
     bool gyroWasOn = (lastFlags & 0x01) != 0;
     if (gyroRequested && !gyroWasOn) {
-        MPU6050Handle = i2cOpen(1, MPU6050_ADDRESS, 0);
+        MPU6050Handle = openMPU6050();
         if (MPU6050Handle >= 0) {
             initMPU6050(MPU6050Handle);
             calibrateMPU6050(MPU6050Handle, 100);
