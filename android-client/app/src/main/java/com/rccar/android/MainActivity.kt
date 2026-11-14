@@ -352,14 +352,26 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
                             fontSize = 10.sp,
                             color = Color.Gray
                         )
-                        Text(
-                            "ⓘ",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .clickable { showBatteryInfo = true }
-                                .padding(horizontal = 4.dp)
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                if (car.batterySoundEnabled.value) "🔊" else "🔇",
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .clickable { car.setBatterySoundEnabled(!car.batterySoundEnabled.value) }
+                                    .padding(horizontal = 4.dp)
+                            )
+                            Text(
+                                "ⓘ",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .clickable { showBatteryInfo = true }
+                                    .padding(horizontal = 4.dp)
+                            )
+                        }
                     }
                     DropdownMenu(
                         expanded = showBatteryInfo,

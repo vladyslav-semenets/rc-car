@@ -2,6 +2,8 @@ package com.rccar.android
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.media.AudioManager
+import android.media.ToneGenerator
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +62,10 @@ class CarController(
     var isBat2Low = mutableStateOf(false)
     var isBat2Crit = mutableStateOf(false)
     var isBatterySensorOnline = mutableStateOf(false)
+    var batterySoundEnabled = mutableStateOf(prefs.getBoolean("batterySoundEnabled", true))
+
+    private var toneGenerator: ToneGenerator? = null
+    private var lastBatteryBeepMs = 0L
 
     enum class DriveAction {
         STOPPED,
@@ -87,7 +93,45 @@ class CarController(
                 isBat1Crit.value = t.isBat1Crit
                 isBat2Low.value = t.isBat2Low
                 isBat2Crit.value = t.isBat2Crit
+                maybePlayBatteryAlert(t)
             }
+        }
+    }
+
+    fun setBatterySoundEnabled(enabled: Boolean) {
+        batterySoundEnabled.value = enabled
+        prefs.edit().putBoolean("batterySoundEnabled", enabled).apply()
+        if (enabled) {
+            playTone(ToneGenerator.TONE_PROP_BEEP, 120)
+        }
+    }
+
+    private fun maybePlayBatteryAlert(t: TelemetryPacket) {
+        if (!t.isSensorOnline || !batterySoundEnabled.value) return
+        val crit = (t.isBat1Crit && t.bat1Volts > 1.0f) || (t.isBat2Crit && t.bat2Volts > 1.0f)
+        val low = (t.isBat1Low && t.bat1Volts > 1.0f) || (t.isBat2Low && t.bat2Volts > 1.0f)
+        if (!crit && !low) return
+
+        val now = System.currentTimeMillis()
+        val intervalMs = if (crit) 3_000L else 10_000L
+        if (now - lastBatteryBeepMs < intervalMs) return
+        lastBatteryBeepMs = now
+
+        if (crit) {
+            playTone(ToneGenerator.TONE_SUP_ERROR, 350)
+        } else {
+            playTone(ToneGenerator.TONE_PROP_BEEP2, 200)
+        }
+    }
+
+    private fun playTone(toneType: Int, durationMs: Int) {
+        try {
+            val tg = toneGenerator ?: ToneGenerator(AudioManager.STREAM_ALARM, 90).also {
+                toneGenerator = it
+            }
+            tg.startTone(toneType, durationMs)
+        } catch (_: Exception) {
+            // Audio mixer may be unavailable on some devices/emulators
         }
     }
 
