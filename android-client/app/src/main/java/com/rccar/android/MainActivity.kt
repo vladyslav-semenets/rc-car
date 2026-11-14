@@ -16,6 +16,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -339,6 +340,50 @@ fun RCCarApp(car: CarController, joystick: JoystickManager, pinger: PingMonitor,
 
             // Battery Telemetry (2S LiPo)
             PanelCard("Battery (2S LiPo)") {
+                var showBatteryInfo by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Channel info",
+                            fontSize = 10.sp,
+                            color = Color.Gray
+                        )
+                        Text(
+                            "ⓘ",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable { showBatteryInfo = true }
+                                .padding(horizontal = 4.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showBatteryInfo,
+                        onDismissRequest = { showBatteryInfo = false }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                "Battery Channels (INA3221)",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text("• BAT 1 (CH1): Motor + 2× ESC", fontSize = 12.sp)
+                            Text("• BAT 2 (CH2): Camera + Pi 4 + VTX", fontSize = 12.sp)
+                            Text(
+                                "2S LiPo: 8.40V (100%) · <6.80V LOW · <6.40V CRIT",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
                 if (car.isBatterySensorOnline.value) {
                     BatteryStatusRow(
                         label = "BAT 1",
