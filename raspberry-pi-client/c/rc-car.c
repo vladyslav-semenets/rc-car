@@ -317,6 +317,7 @@ void *steeringWheelCorrectionThread(void *arg) {
 /* ── ESC control ─────────────────────────────────────────────────────────── */
 
 static volatile bool escLowBatCutoff = false;
+static volatile bool shutdownInitiated = false;
 
 void move(const int speed, const char *direction) {
     if (escLowBatCutoff) {
@@ -355,6 +356,18 @@ void setEscToNeutralPosition(void) {
     pthread_mutex_unlock(&motorMutex);
     applyEscPulse(CAR_ESC_NEUTRAL_PWM);
     printf("[ESC] neutral\n");
+}
+
+static void triggerSystemShutdown(const char *reason) {
+    if (shutdownInitiated) {
+        return;
+    }
+    shutdownInitiated = true;
+    printf("[System] Initiating safe shutdown (%s)...\n", reason);
+    fflush(stdout);
+    setEscToNeutralPosition();
+    gpioWrite(CAR_ESC_ENABLE_PIN, 1); /* Relay OFF: cut ESC power */
+    system("sync; sudo shutdown -h now &");
 }
 
 static void *escPowerCycleThread(void *arg) {
@@ -670,10 +683,7 @@ void processMavlinkCommands(mavlink_message_t *msg) {
                 break;
 
             case MAVLINK_SHUTDOWN_PI_COMMAND:
-                printf("[System] Shutdown command received. Shutting down Raspberry Pi...\n");
-                setEscToNeutralPosition();
-                gpioWrite(CAR_ESC_ENABLE_PIN, 1);
-                system("sync; sudo shutdown -h now &");
+                triggerSystemShutdown("MAVLink command");
                 break;
 
             default:
@@ -779,6 +789,9 @@ static void *batteryTelemetryThread(void *arg) {
     uint8_t seq = 0;
     uint32_t logCounter = 0;
     int bat1CritStreak = 0;
+    int bat2ShutdownStreak = 0;
+    const float piShutdownV = 6.60f;
+    const int piShutdownStreakSec = 3;
 
     while (1) {
         if (fd < 0) {
@@ -832,6 +845,17 @@ static void *batteryTelemetryThread(void *arg) {
             }
         } else {
             bat1CritStreak = 0;
+        }
+
+        if (online && v2 > 1.0f && v2 < piShutdownV) {
+            bat2ShutdownStreak++;
+            if (!shutdownInitiated && bat2ShutdownStreak >= piShutdownStreakSec) {
+                printf("[INA3221] CRITICAL BAT2 (%.2fV < %.2fV for %ds) -> shutting down Pi!\n",
+                       v2, piShutdownV, piShutdownStreakSec);
+                triggerSystemShutdown("BAT2 undervoltage");
+            }
+        } else {
+            bat2ShutdownStreak = 0;
         }
 
         if (online && (logCounter % 5 == 0 || v1 < LIPO_2S_WARN_V || v2 < LIPO_2S_WARN_V)) {
